@@ -16,7 +16,7 @@ ReturnCode InputReader::open() {
     Will not return a newline character
 */
 char InputReader::get_ch() {
-    return this->get_ch(false);
+    return this->get_ch(true);
 };
 
 /*

@@ -12,6 +12,11 @@
 #include "InputReader.h"
 
 class TibScanner {
+    void add_token(Tokens type, std::string value, unsigned int line_number);
+    void add_token(Tokens type, std::string value);
+    void parse_number(char ch);
+    void parse_char_operator(char ch);
+
 public:
     std::vector<Token> parsed_tokens;
     Config config;
@@ -21,7 +26,6 @@ public:
 
     std::string output_tokens();
 
-    ReturnCode open();
     ReturnCode parse();
 
 };

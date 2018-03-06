@@ -2,6 +2,10 @@
 #include <string>
 
 #include "config.h"
+#include "TibScanner.h"
+
+using std::cout;
+using std::endl;
 
 void print_help() {
     cout << "Usage: tib INPUT_FILE [optional arguments]" << endl << 
@@ -47,7 +51,7 @@ int main(int argc, char*argv[]) {
 
     parse_options(argc, argv, config);
 
-    DatalogScanner scanner(config);
+    TibScanner scanner(config);
 
     ReturnCode code = scanner.parse();
     scanner.output_tokens();
