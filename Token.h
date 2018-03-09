@@ -30,6 +30,14 @@ public:
     std::string value = "";
     const std::string to_str();
 
+    bool operator==(const Token &other) const {
+        return this->type == other.type;
+    };
+
+    bool operator==(const Tokens &other) const {
+        return this->type == other;
+    }
+
     /*
     std::ostream& operator<< (std::ostream& stream, Token& obj) {
         return stream << obj.toString();

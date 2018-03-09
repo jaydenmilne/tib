@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "TibScanner.h"
+#include "TibParser.h"
 
 using std::cout;
 using std::endl;
@@ -54,7 +55,10 @@ int main(int argc, char*argv[]) {
     TibScanner scanner(config);
 
     ReturnCode code = scanner.parse();
-    scanner.output_tokens();
+
+    TibParser parser(scanner.parsed_tokens, config);
+    parser.parse();
+
 
     return code;
 }
