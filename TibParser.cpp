@@ -104,6 +104,5 @@ bool TibParser::parse() {
         return false;
     }
   
-    // return datalog_program;
     return true;
 }

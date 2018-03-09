@@ -2,7 +2,6 @@
 #ifndef TOKEN_H_
 #define TOKEN_H_
 
-#include <map>
 #include <string>
 #include <sstream>
 #include <set>
