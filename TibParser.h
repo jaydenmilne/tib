@@ -24,9 +24,10 @@ class TibParser {
     // Non Terminals
     void tib_program();
     void statement();
-    Value result();
-    Value result_2();
-    Value result_3();
+    Value pl_6();
+    Value pl_7();
+    Value pl_9();
+    Value pl_14();
 
 public:
     void write_out_string(std::string str);

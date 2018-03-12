@@ -12,6 +12,7 @@ typedef enum tokens {
     MINUS,
     TIMES,
     DIVIDE,
+    DOT,
     EOL,
     EOF_,
     UNDEFINED

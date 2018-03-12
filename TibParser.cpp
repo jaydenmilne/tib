@@ -42,47 +42,64 @@ void TibParser::write_out_string(std::string str) {
     return;
 
 }
-Value TibParser::result_2() {
-    Value v1 = this->result_3();
+
+Value TibParser::pl_6() {
+    Value v1 = this->pl_7();
+
+    if (this->token == tokens::PLUS) {
+        this->match(tokens::PLUS);
+        Value v2 = this->pl_6();
+        return Value(v1.value + v2.value);
+    } else if (this->token == tokens::MINUS) {
+        this->match(tokens::MINUS);
+        Value v2 = this->pl_6();
+        return Value(v1.value - v2.value);
+    } else {
+        return v1;
+    }
+}
+
+Value TibParser::pl_7() {
+    Value v1 = this->pl_9();
 
     if (this->token == tokens::TIMES) {
         this->match(tokens::TIMES);
-        Value v2 = this->result_2();
+        Value v2 = this->pl_7();
         return Value(v1.value * v2.value);
     } else if (this->token == tokens::DIVIDE) {
         this->match(tokens::DIVIDE);
-        Value v2 = this->result_2();
+        Value v2 = this->pl_7();
         return Value(v1.value / v2.value);
     } else {
         return v1;
     }
 }
 
-Value TibParser::result_3() {
-    Value val(stoi(this->token.value));
-    this->match(tokens::NUM);
-    return val;
+Value TibParser::pl_9() {
+    if (this->token == tokens::MINUS) {
+        this->match(tokens::MINUS);
+        Value val = this->pl_14();
+        return -val;
+    } else {
+        return this->pl_14();
+    }
+
 }
 
-Value TibParser::result() {
-    Value v1 = this->result_2();
-
-    if (this->token == tokens::PLUS) {
-        this->match(tokens::PLUS);
-        Value v2 = this->result();
-        return Value(v1.value + v2.value);
-    } else if (this->token == tokens::MINUS) {
-        this->match(tokens::MINUS);
-        Value v2 = this->result();
-        return Value(v1.value - v2.value);
-    } else {
-        return v1;
+Value TibParser::pl_14() {
+    std::string val; 
+    if (this->token == tokens::DOT) {
+        this->match(tokens::)
+        val = '-';
     }
+    val = val + this->token.value;
+    this->match(tokens::NUM);
+    if 
 }
 void TibParser::statement() {
     // For now, just call result since it's the only option
     // Set to ans?
-    std::cout << this->result().value;
+    std::cout << this->pl_6().value;
     std::cout << std::endl;
 }
 

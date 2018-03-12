@@ -8,6 +8,7 @@ char TokenNames[NumTokens][11] = {
     "MINUS",
     "TIMES",
     "DIVIDE",
+    "DOT",
     "EOL",
     "EOF",
     "UNDEFINED"

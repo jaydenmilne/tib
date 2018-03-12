@@ -6,6 +6,13 @@ class Value {
 public:
     long int value = 0;
     Value(int v) : value(v) {};
+
+   Value operator-()  {
+    Value v;
+    v.value = -this.value;
+    return v;
+   }
+
 };
 
 #endif
