@@ -49,11 +49,11 @@ Value TibParser::pl_6() {
     if (this->token == tokens::PLUS) {
         this->match(tokens::PLUS);
         Value v2 = this->pl_6();
-        return Value(v1.value + v2.value);
+        return Value(v1 + v2);
     } else if (this->token == tokens::MINUS) {
         this->match(tokens::MINUS);
         Value v2 = this->pl_6();
-        return Value(v1.value - v2.value);
+        return Value(v1 - v2);
     } else {
         return v1;
     }
@@ -65,11 +65,11 @@ Value TibParser::pl_7() {
     if (this->token == tokens::TIMES) {
         this->match(tokens::TIMES);
         Value v2 = this->pl_7();
-        return Value(v1.value * v2.value);
+        return Value(v1 * v2);
     } else if (this->token == tokens::DIVIDE) {
         this->match(tokens::DIVIDE);
         Value v2 = this->pl_7();
-        return Value(v1.value / v2.value);
+        return Value(v1 / v2);
     } else {
         return v1;
     }
@@ -78,7 +78,7 @@ Value TibParser::pl_7() {
 Value TibParser::pl_9() {
     if (this->token == tokens::MINUS) {
         this->match(tokens::MINUS);
-        Value val = this->pl_14();
+        Value val = this->pl_9();
         return -val;
     } else {
         return this->pl_14();
@@ -87,19 +87,29 @@ Value TibParser::pl_9() {
 }
 
 Value TibParser::pl_14() {
-    std::string val; 
+    Value val = this->pl_15();
     if (this->token == tokens::DOT) {
-        this->match(tokens::)
-        val = '-';
+        std::string decimal_val;
+        this->match(tokens::DOT);
+        // Genius, I know.
+        decimal_val += '.' + this->pl_15().to_str();
+        Value dec_val(std::stod(decimal_val));
+        return Value(val + dec_val);
+    } else {
+        return val;
     }
-    val = val + this->token.value;
+    
+}
+
+Value TibParser::pl_15() {
+    std::string num = this->token.value;
     this->match(tokens::NUM);
-    if 
+    return Value(std::stol(num));
 }
 void TibParser::statement() {
     // For now, just call result since it's the only option
     // Set to ans?
-    std::cout << this->pl_6().value;
+    std::cout << this->pl_6().to_str();
     std::cout << std::endl;
 }
 
@@ -116,7 +126,7 @@ void TibParser::tib_program() {
 bool TibParser::parse() {
     try {
         this->tib_program();
-    } catch (std::string e) {
+    } catch (char const* e) {
         this->write_out_string(e);
         return false;
     }

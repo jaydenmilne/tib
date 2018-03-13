@@ -6,7 +6,7 @@
                 "type": "cppdbg",
                 "request": "launch",
                 "program": "${workspaceRoot}/tib.exe",
-                "args": ["test_input\\numbers_operators.txt", "--debug", "--write"],
+                "args": ["test_input\\numbers_operators.txt", "--debug"],
                 "stopAtEntry": false,
                 "cwd": "${workspaceRoot}",
                 "environment": [],

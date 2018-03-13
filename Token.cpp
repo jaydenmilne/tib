@@ -34,6 +34,6 @@ const std::string Token::to_str() {
     if (value == "\n")
         value = "\\n";
 
-    ss << '(' << token_name(this->type) << ",\"" << value << "\"," << this->line_number << ")";
+    ss << value << "\"" << value << "\" on line " << this->line_number;
     return ss.str();
 }

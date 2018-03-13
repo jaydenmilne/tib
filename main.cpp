@@ -59,6 +59,5 @@ int main(int argc, char*argv[]) {
     TibParser parser(scanner.parsed_tokens, config);
     parser.parse();
 
-
     return code;
 }

@@ -7,9 +7,10 @@ Based off [this table](http://tibasicdev.wikidot.com/68k:order-of-operations)
 | P[rogram]     | -> | S '\n' P      | 'EOF'
 | S[tatement]   | -> | PL6           | (Disp, etc)*
 | PL6           | -> | # + $         | # - $         | #
-| PL7           | -> | # * $         | # $           | # / $         | #
-| PL9           | -> | -PL14         | #
-| PL14          | -> | [num]$        | .[num]        | rvar
+| PL7           | -> | # * $         | # $*          | # / $         | #
+| PL9           | -> | -$            | #
+| PL14          | -> | #$            | .#
+| PL15          | -> | [num]         | [rvar]
 
 $ = recursion
 \# = next priority level
@@ -19,7 +20,8 @@ $ = recursion
 (Highest number = highest priority)
 | Level | Operations
 |-------|-----------
-|  14   | Values and their equivalents (variables and constants)
+|  15   | Values and their equivalents (variables and constants)
+|  14   | . (for creating floating point numbers)
 |  13 	| `()`, brackets `[ ]`, and braces `{ }`
 |  12 	| Functions (`sin()`, `dim()`)
 |  11 	| Operators that go after their operand, eg `{1,2}(1)`

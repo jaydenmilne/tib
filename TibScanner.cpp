@@ -28,8 +28,12 @@ void TibScanner::parse_char_operator(char ch) {
         case '\n':
             this->add_token(Tokens::EOL, str, this->in_reader.line_number - 1);
             break;
+        case '.':
+            this->add_token(Tokens::DOT, str, this->in_reader.line_number);
+            break;
         default:
             this->add_token(Tokens::UNDEFINED, str);
+            std::cout << "Warning: Unrecognized token " << this->parsed_tokens.back().to_str() << std::endl;
     }
 };
 
