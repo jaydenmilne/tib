@@ -1,7 +1,13 @@
 #ifndef VALUE_H__
 #define VALUE_H__
 
-#include<string>
+#include <string>
+#include <sstream>
+#include <math.h>
+#include <functional>
+#include <cmath>
+
+const static double F_PRECISION = 0.00000000001;
 
 typedef enum v_types {
     INT,
@@ -20,6 +26,7 @@ public:
     double f_val;
     std::string s_val;
 
+
     ValueTypes type = v_types::FLOAT;
 
     Value(long int v) : i_val(v), type(v_types::INT) {};
@@ -28,6 +35,31 @@ public:
     Value() {};
 
     std::string to_str();
+
+    template<class OP> double generic_compare(const Value& rhs, OP action) {
+        switch (this->type) {
+            case ValueTypes::INT:
+                switch(rhs.type) {
+                    case ValueTypes::INT:
+                        return action(this->i_val, rhs.i_val);
+                    case ValueTypes::FLOAT:
+                        return action(this->i_val, rhs.f_val);
+                    default:
+                        throw "ERR:DATA TYPE";
+                };
+            case ValueTypes::FLOAT:
+                switch(rhs.type) {
+                    case ValueTypes::INT:
+                        return action(this->f_val, rhs.i_val);
+                    case ValueTypes::FLOAT:
+                        return action(this->f_val, rhs.f_val);
+                    default:
+                        throw "ERR: DATA TYPE";
+                }
+            default:
+                throw "ERR: DATA TYPE";
+            }
+    }
 
     Value operator-();
     Value operator-(const Value& rhs);

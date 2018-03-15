@@ -28,9 +28,6 @@ void TibScanner::parse_char_operator(char ch) {
         case '\n':
             this->add_token(Tokens::EOL, str, this->in_reader.line_number - 1);
             break;
-        case '.':
-            this->add_token(Tokens::DOT, str, this->in_reader.line_number);
-            break;
         default:
             this->add_token(Tokens::UNDEFINED, str);
             std::cout << "Warning: Unrecognized token " << this->parsed_tokens.back().to_str() << std::endl;
@@ -38,23 +35,29 @@ void TibScanner::parse_char_operator(char ch) {
 };
 
 void TibScanner::parse_number(char ch) {
-    if (isdigit(ch)) {
-        // Is a number (only supports integers for now)
+    if (isdigit(ch) || ch == '.') {
+        bool is_float = false;
         std::stringstream ss;
 
         char n_char = 0;
         do {
+            if (ch == '.')
+                is_float = true;
             ss << ch;
         } while (
             ((n_char = this->in_reader.input.peek()) != '\n' )  &&
             (n_char != EOF) &&
             // As long as the next character is a digit, we'll keep consuming it as part of this one
-            (isdigit(n_char)) &&
+            (isdigit(n_char) || n_char == '.') &&
             (ch = this->in_reader.get_ch())
         );
 
-    this->add_token(Tokens::NUM, ss.str());
-        
+        if (is_float) {
+            this->add_token(Tokens::NUM, 'f' + ss.str());
+        } else {
+            this->add_token(Tokens::NUM, ss.str());
+        }
+
     } else {
         this->parse_char_operator(ch);
     }

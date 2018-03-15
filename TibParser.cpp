@@ -87,35 +87,40 @@ Value TibParser::pl_9() {
 }
 
 Value TibParser::pl_14() {
-    Value val = this->pl_15();
-    if (this->token == tokens::DOT) {
-        std::string decimal_val;
-        this->match(tokens::DOT);
-        // Genius, I know.
-        decimal_val += '.' + this->pl_15().to_str();
-        Value dec_val(std::stod(decimal_val));
-        return Value(val + dec_val);
+
+    if (this->token == tokens::NUM) {
+        if (this->token.value[0] == 'f') {
+            // parse as float
+            std::string copy = this->token.value;
+            copy.erase(0,1);
+            Value val(stod(copy));
+            this->match(tokens::NUM);
+            return val;
+
+        } else {
+            // parse as int
+            Value val(stol(this->token.value));
+            this->match(tokens::NUM);
+            return val;
+        }
     } else {
-        return val;
+        throw "Not implemented!";
     }
     
 }
 
-Value TibParser::pl_15() {
-    std::string num = this->token.value;
-    this->match(tokens::NUM);
-    return Value(std::stol(num));
-}
 void TibParser::statement() {
     // For now, just call result since it's the only option
     // Set to ans?
+    if (this->token == tokens::EOL)
+        return;
     std::cout << this->pl_6().to_str();
     std::cout << std::endl;
 }
 
 void TibParser::tib_program() {
-    if (this->token == tokens::EOL) {
-        this->match(tokens::EOL);
+    if (this->token == tokens::EOF_) {
+        this->match(tokens::EOF_);
     } else {
         this->statement();
         this->match(tokens::EOL);
