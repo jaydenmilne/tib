@@ -16,6 +16,8 @@ class TibScanner {
     void add_token(Tokens type, std::string value);
     void parse_number(char ch);
     void parse_char_operator(char ch);
+    void parse_comment(char ch);
+    void parse_string(char ch);
 
 public:
     std::vector<Token> parsed_tokens;

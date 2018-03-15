@@ -9,6 +9,17 @@ void TibScanner::add_token(Tokens type, std::string value) {
     this->add_token(type, value, ln);
 }
 
+void TibScanner::parse_comment(char ch) {
+    // Comments are ignored till the end of the line
+
+        char n_char = 0;
+        while (
+            ((n_char = this->in_reader.input.peek()) != '\n' )  &&
+            (n_char != EOF) &&
+            (ch = this->in_reader.get_ch())
+        ) {};
+}
+
 void TibScanner::parse_char_operator(char ch) {
     std::string str(1, ch);
 
@@ -27,6 +38,9 @@ void TibScanner::parse_char_operator(char ch) {
             break;
         case '\n':
             this->add_token(Tokens::EOL, str, this->in_reader.line_number - 1);
+            break;
+        case '#':
+            this->parse_comment(ch);
             break;
         default:
             this->add_token(Tokens::UNDEFINED, str);
