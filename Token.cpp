@@ -1,6 +1,6 @@
 #include "Token.h"
 
-unsigned const int NumTokens = 9;
+unsigned const int NumTokens = 20;
 
 char TokenNames[NumTokens][11] = {
     "NUM",
@@ -8,7 +8,9 @@ char TokenNames[NumTokens][11] = {
     "MINUS",
     "TIMES",
     "DIVIDE",
-    "DOT",
+    "L_PAREN",
+    "R_PAREN",
+    "QUOTE",
     "EOL",
     "EOF",
     "UNDEFINED"

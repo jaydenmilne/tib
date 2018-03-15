@@ -20,6 +20,10 @@ void TibScanner::parse_comment(char ch) {
         ) {};
 }
 
+void TibScanner::parse_string(char ch) {
+    return;
+}
+
 void TibScanner::parse_char_operator(char ch) {
     std::string str(1, ch);
 
@@ -41,6 +45,15 @@ void TibScanner::parse_char_operator(char ch) {
             break;
         case '#':
             this->parse_comment(ch);
+            break;
+        case '(':
+            this->add_token(Tokens::L_PAREN, str);
+            break;
+        case ')':
+            this->add_token(Tokens::R_PAREN, str);
+            break;
+        case '"':
+            this->parse_string(ch);
             break;
         default:
             this->add_token(Tokens::UNDEFINED, str);

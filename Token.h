@@ -12,7 +12,9 @@ typedef enum tokens {
     MINUS,
     TIMES,
     DIVIDE,
-    DOT,
+    L_PAREN,
+    R_PAREN,
+    QUOTE,
     EOL,
     EOF_,
     UNDEFINED

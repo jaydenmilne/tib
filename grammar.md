@@ -8,7 +8,8 @@ Based off [this table](http://tibasicdev.wikidot.com/68k:order-of-operations)
 | S[tatement]   | -> | PL6           | (Disp, etc)*  | EOF
 | PL6           | -> | # + $         | # - $         | #
 | PL7           | -> | # * $         | # $           | # / $         | #
-| PL9           | -> | -PL14         | #
+| PL9           | -> | -#            | #
+| PL13          | -> | (PL2)
 | PL14          | -> | [num]$        | .[num]        | rvar
 
 $ = recursion

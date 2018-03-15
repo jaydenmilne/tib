@@ -132,7 +132,7 @@ bool TibParser::parse() {
     try {
         this->tib_program();
     } catch (char const* e) {
-        this->write_out_string(e);
+        this->write_out_string("ERROR: UNHANDLED EXCEPTION!\n" + e);
         return false;
     }
   
