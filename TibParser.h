@@ -12,7 +12,7 @@
 #include "Value.h"
 
 class TibParser {
-    Config config;
+    Config& config;
     std::vector<Token> tokens;
     Token token;
     unsigned int current_index = 0;
@@ -32,7 +32,7 @@ class TibParser {
 
 public:
     void write_out_string(std::string str);
-    TibParser(std::vector<Token> tokens_, Config config_) : config(config_), tokens(tokens_), token(tokens[0]) {};
+    TibParser(std::vector<Token> tokens_, Config& config_) : config(config_), tokens(tokens_), token(tokens[0]) {};
 
     bool parse();
     void output();

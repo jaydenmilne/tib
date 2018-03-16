@@ -10,10 +10,17 @@ char TokenNames[NumTokens][11] = {
     "DIVIDE",
     "L_PAREN",
     "R_PAREN",
-    "QUOTE",
+    "STRING",
     "EOL",
     "EOF",
     "UNDEFINED"
+};
+
+char TClassNames[4][9] = {
+    "VALUE",
+    "VAR",
+    "KEYWORD",
+    "FUNCTION"
 };
 
 std::string token_name(Tokens token) {
@@ -36,6 +43,6 @@ const std::string Token::to_str() {
     if (value == "\n")
         value = "\\n";
 
-    ss << value << "\"" << value << "\" on line " << this->line_number;
+    ss << TokenNames[this->type] << "/" << TClassNames[this->clss] << " with value " << "\"" << value << "\" on line " << this->line_number;
     return ss.str();
 }

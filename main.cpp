@@ -11,6 +11,7 @@ using std::endl;
 void print_help() {
     cout << "Usage: tib INPUT_FILE [optional arguments]" << endl << 
                         "\t--write : save output to file" << endl <<
+                        "\t--write-tokens : print tokenizer output" << endl <<
                         "\t--quiet : don't output to standard output" << endl <<
                         "\t--debug : enable debug outputs" << endl;
     return;
@@ -31,8 +32,10 @@ void parse_options(int argc, char* argv[], Config& config) {
             config.write = true;
         else if (arg == "--quiet")
             config.quiet = true;
+        else if (arg == "--write-tokens")
+            config.write_tokens = true;
         else {
-            cout << "Invalid argument specified: \"" << arg << "\", ignoring." << endl; 
+            cout << "Invalid argument specified: \"" << arg << "\"" << endl; 
             messed_up = true;
         }
     }
@@ -44,7 +47,6 @@ void parse_options(int argc, char* argv[], Config& config) {
 
 int main(int argc, char*argv[]) {
     if (argc == 1) {
-        cout << "You must specify an input file." << endl;
         print_help();
         return ReturnCode::NoInputGiven;
     }

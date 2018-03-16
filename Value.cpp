@@ -32,7 +32,7 @@ Value Value::operator+(const Value& rhs) {
 
     if (this->type == ValueTypes::STRING && rhs.type == ValueTypes::STRING) {
         val.type = ValueTypes::STRING;
-        val.s_val = rhs.s_val + this->s_val;
+        val.s_val = this->s_val + rhs.s_val;
         return val;
     }
 

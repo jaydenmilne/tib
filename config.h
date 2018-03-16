@@ -16,6 +16,7 @@ struct Config {
     bool debug = false;
     bool quiet = false;
     bool write = false;
+    bool write_tokens = false;
     std::string input = "";
 };
 

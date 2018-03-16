@@ -28,6 +28,7 @@
         "array": "cpp",
         "utility": "cpp",
         "tuple": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "functional": "cpp"
     }
 }

@@ -14,11 +14,18 @@ typedef enum tokens {
     DIVIDE,
     L_PAREN,
     R_PAREN,
-    QUOTE,
+    STRING,
     EOL,
     EOF_,
     UNDEFINED
 } Tokens;
+
+typedef enum token_classes {
+    VALUE,      // Anything that has to do with getting a like constants / operators
+    VAR,        // Any variable (rvar, list str1)
+    KEYWORD,    // Lbl Goto Disp etc (must go at beginning of line)
+    FUNCTION    // Anything that takes paramaters & has parentheses sin() output()
+} TClass;
 
 std::string token_name(Tokens token);
 
@@ -26,8 +33,9 @@ std::set<std::string> get_token_set();
 
 class Token {
 public:
-    Token(unsigned int _ln, Tokens _tp, std::string _val) : line_number(_ln), type(_tp), value(_val) {};
+    Token(unsigned int _ln, Tokens _tp, TClass clss_, std::string _val) : line_number(_ln), clss(clss_), type(_tp), value(_val) {};
     unsigned int line_number = 0;
+    TClass clss = TClass::VALUE;
     Tokens type = Tokens::UNDEFINED;
     std::string value = "";
     const std::string to_str();

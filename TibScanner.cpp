@@ -1,17 +1,16 @@
 #include "TibScanner.h"
-void TibScanner::add_token(Tokens type, std::string value, unsigned int line_number) {
-    Token new_token(line_number, type, value);
+void TibScanner::add_token(Tokens type, TClass clss, std::string value, unsigned int line_number) {
+    Token new_token(line_number, type, clss, value);
     this->parsed_tokens.push_back(new_token);
 }
 
-void TibScanner::add_token(Tokens type, std::string value) {
+void TibScanner::add_token(Tokens type, TClass clss, std::string value) {
     unsigned int ln = this->in_reader.line_number;
-    this->add_token(type, value, ln);
+    this->add_token(type, clss, value, ln);
 }
 
 void TibScanner::parse_comment(char ch) {
     // Comments are ignored till the end of the line
-
         char n_char = 0;
         while (
             ((n_char = this->in_reader.input.peek()) != '\n' )  &&
@@ -21,6 +20,23 @@ void TibScanner::parse_comment(char ch) {
 }
 
 void TibScanner::parse_string(char ch) {
+    // We don't care about the " character
+    std::stringstream ss;
+    char n_char;
+    do {
+        ss << ch;
+    } while (
+        ((n_char = this->in_reader.input.peek()) != '\n') &&
+        (n_char != EOF) && 
+        (n_char != '"') &&
+        (ch = this->in_reader.get_ch())
+    );
+
+    // The first char is a ", we don't want it
+    if (n_char == '"')
+        this->in_reader.get_ch();
+        
+    this->add_token(Tokens::STRING, TClass::VALUE, ss.str().erase(0, 1));
     return;
 }
 
@@ -29,35 +45,35 @@ void TibScanner::parse_char_operator(char ch) {
 
     switch(ch) {
         case '+':
-            this->add_token(Tokens::PLUS, str);
+            this->add_token(Tokens::PLUS, TClass::VALUE, str);
             break;
         case '-':
-            this->add_token(Tokens::MINUS, str);
+            this->add_token(Tokens::MINUS, TClass::VALUE, str);
             break;
         case '*':
-            this->add_token(Tokens::TIMES, str);
+            this->add_token(Tokens::TIMES, TClass::VALUE, str);
             break;
         case '/':
-            this->add_token(Tokens::DIVIDE, str);
+            this->add_token(Tokens::DIVIDE, TClass::VALUE, str);
             break;
         case '\n':
-            this->add_token(Tokens::EOL, str, this->in_reader.line_number - 1);
+            this->add_token(Tokens::EOL, TClass::KEYWORD, str, this->in_reader.line_number - 1);
             break;
         case '#':
             this->parse_comment(ch);
             break;
         case '(':
-            this->add_token(Tokens::L_PAREN, str);
+            this->add_token(Tokens::L_PAREN, TClass::VALUE, str);
             break;
         case ')':
-            this->add_token(Tokens::R_PAREN, str);
+            this->add_token(Tokens::R_PAREN, TClass::VALUE, str);
             break;
         case '"':
             this->parse_string(ch);
             break;
         default:
-            this->add_token(Tokens::UNDEFINED, str);
-            std::cout << "Warning: Unrecognized token " << this->parsed_tokens.back().to_str() << std::endl;
+            this->add_token(Tokens::UNDEFINED, TClass::VALUE, str);
+            std::cout << "Warning: Unrecognized token " << str << std::endl;
     }
 };
 
@@ -80,9 +96,9 @@ void TibScanner::parse_number(char ch) {
         );
 
         if (is_float) {
-            this->add_token(Tokens::NUM, 'f' + ss.str());
+            this->add_token(Tokens::NUM, TClass::VALUE, 'f' + ss.str());
         } else {
-            this->add_token(Tokens::NUM, ss.str());
+            this->add_token(Tokens::NUM, TClass::VALUE, ss.str());
         }
 
     } else {
@@ -105,38 +121,19 @@ ReturnCode TibScanner::parse() {
         } while ((ch = this->in_reader.get_ch()) != EOF);
     }
 
-    this->add_token(Tokens::EOF_, "");
+    this->add_token(Tokens::EOF_, TClass::KEYWORD, "");
+
+    if (this->config.write_tokens)
+        this->output_tokens();
 
     return ReturnCode::OK;
 }
 
-std::string TibScanner::output_tokens() {
-    std::stringstream ss;
-
+void TibScanner::output_tokens() {
     for (auto token : this->parsed_tokens) {
-        ss << token.to_str() << std::endl; 
+        std::cout << token.to_str() << std::endl; 
     }
-
-    ss << "Total Tokens = " << this->parsed_tokens.size() << std::endl;
-
+    std::cout << "Total Tokens = " << this->parsed_tokens.size() << std::endl;
     
-    if (!this->config.quiet) {
-        std::cout << ss.str();
-    }
-    
-    if (this->config.write) {
-        std::cout << "Writing out\n";
-        std::ofstream output;
-        std::stringstream ss2;
-
-        ss2 << this->config.input << "-out.txt";
-        output.open(ss2.str());
-        if (!output.is_open()) {
-            std::cout << "Failed to open output file " << ss2.str() << "!" << std::endl;
-        }
-        output << ss.str();
-        output.close();
-    }
-
-    return ss.str();
+    return;
 }

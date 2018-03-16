@@ -103,7 +103,12 @@ Value TibParser::pl_14() {
             this->match(tokens::NUM);
             return val;
         }
-    } else {
+    } else if (this->token == tokens::STRING) {
+        Value val(this->token.value);
+        this->match(tokens::STRING);
+        return val;
+    }
+    else {
         throw "Not implemented!";
     }
     
@@ -132,7 +137,7 @@ bool TibParser::parse() {
     try {
         this->tib_program();
     } catch (char const* e) {
-        this->write_out_string("ERROR: UNHANDLED EXCEPTION!\n" + e);
+        this->write_out_string(e);
         return false;
     }
   

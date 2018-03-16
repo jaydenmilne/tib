@@ -9,7 +9,7 @@
 
 const static double F_PRECISION = 0.00000000001;
 
-typedef enum v_types {
+typedef enum class v_types {
     INT,
     FLOAT,
     STRING
