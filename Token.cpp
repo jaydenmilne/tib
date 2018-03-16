@@ -16,11 +16,12 @@ char TokenNames[NumTokens][11] = {
     "UNDEFINED"
 };
 
-char TClassNames[4][9] = {
+char TClassNames[5][9] = {
     "VALUE",
     "VAR",
     "KEYWORD",
-    "FUNCTION"
+    "FUNCTION",
+    "OPERATOR"
 };
 
 std::string token_name(Tokens token) {

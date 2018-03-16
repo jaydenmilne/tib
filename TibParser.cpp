@@ -70,6 +70,10 @@ Value TibParser::pl_7() {
         this->match(tokens::DIVIDE);
         Value v2 = this->pl_7();
         return Value(v1 / v2);
+    } else if (this->token.clss == TClass::VALUE) {
+        // Adjacent multiplication
+        Value v2 = this->pl_7();
+        return Value(v1 * v2);
     } else {
         return v1;
     }
@@ -81,9 +85,23 @@ Value TibParser::pl_9() {
         Value val = this->pl_9();
         return -val;
     } else {
-        return this->pl_14();
+        return this->pl_13();
     }
 
+}
+
+Value TibParser::pl_13() {
+    if (this->token == tokens::L_PAREN) {
+        this->match(tokens::L_PAREN);
+        Value val = this->pl_6();
+        // The TI-84 is very "flexible" with closing parentheses, so match it if we can
+        if (this->token == tokens::R_PAREN)
+            this->match(tokens::R_PAREN);
+
+        return val;
+    } else {
+        return this->pl_14();
+    };
 }
 
 Value TibParser::pl_14() {
@@ -128,6 +146,8 @@ void TibParser::tib_program() {
         this->match(tokens::EOF_);
     } else {
         this->statement();
+        if (this->token == tokens::EOF_)
+            return;
         this->match(tokens::EOL);
         this->tib_program();
     }
@@ -138,6 +158,9 @@ bool TibParser::parse() {
         this->tib_program();
     } catch (char const* e) {
         this->write_out_string(e);
+        return false;
+    } catch (std::string str) {
+        this->write_out_string(str);
         return false;
     }
   

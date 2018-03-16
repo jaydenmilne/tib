@@ -21,10 +21,11 @@ typedef enum tokens {
 } Tokens;
 
 typedef enum token_classes {
-    VALUE,      // Anything that has to do with getting a like constants / operators
-    VAR,        // Any variable (rvar, list str1)
-    KEYWORD,    // Lbl Goto Disp etc (must go at beginning of line)
-    FUNCTION    // Anything that takes paramaters & has parentheses sin() output()
+    VALUE,       // Anything that has to do with getting a like constants / operators
+    VAR,         // Any variable (rvar, list str1)
+    KEYWORD,     // Lbl Goto Disp etc (must go at beginning of line)
+    FUNCTION,    // Anything that takes paramaters & has parentheses sin() output()
+    OPERATOR,
 } TClass;
 
 std::string token_name(Tokens token);

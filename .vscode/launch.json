@@ -6,7 +6,7 @@
                 "type": "cppdbg",
                 "request": "launch",
                 "program": "${workspaceRoot}/tib.exe",
-                "args": ["test_input\\strings.txt", "--write-tokens"],
+                "args": ["test_input\\large_input.txt"],
                 "stopAtEntry": false,
                 "cwd": "${workspaceRoot}",
                 "environment": [],

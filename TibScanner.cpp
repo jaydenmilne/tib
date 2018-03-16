@@ -45,16 +45,16 @@ void TibScanner::parse_char_operator(char ch) {
 
     switch(ch) {
         case '+':
-            this->add_token(Tokens::PLUS, TClass::VALUE, str);
+            this->add_token(Tokens::PLUS, TClass::OPERATOR, str);
             break;
         case '-':
-            this->add_token(Tokens::MINUS, TClass::VALUE, str);
+            this->add_token(Tokens::MINUS, TClass::OPERATOR, str);
             break;
         case '*':
-            this->add_token(Tokens::TIMES, TClass::VALUE, str);
+            this->add_token(Tokens::TIMES, TClass::OPERATOR, str);
             break;
         case '/':
-            this->add_token(Tokens::DIVIDE, TClass::VALUE, str);
+            this->add_token(Tokens::DIVIDE, TClass::OPERATOR, str);
             break;
         case '\n':
             this->add_token(Tokens::EOL, TClass::KEYWORD, str, this->in_reader.line_number - 1);
@@ -66,7 +66,7 @@ void TibScanner::parse_char_operator(char ch) {
             this->add_token(Tokens::L_PAREN, TClass::VALUE, str);
             break;
         case ')':
-            this->add_token(Tokens::R_PAREN, TClass::VALUE, str);
+            this->add_token(Tokens::R_PAREN, TClass::OPERATOR, str);
             break;
         case '"':
             this->parse_string(ch);
