@@ -27,6 +27,7 @@ class TibParser {
     Value pl_6();
     Value pl_7();
     Value pl_9();
+    Value pl_10();
     Value pl_13();
     Value pl_14();
     Value pl_15();

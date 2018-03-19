@@ -71,6 +71,9 @@ void TibScanner::parse_char_operator(char ch) {
         case '"':
             this->parse_string(ch);
             break;
+        case '^':
+            this->add_token(Tokens::POW, TClass::OPERATOR, str);
+            break;
         default:
             this->add_token(Tokens::UNDEFINED, TClass::VALUE, str);
             std::cout << "Warning: Unrecognized token " << str << std::endl;

@@ -10,7 +10,7 @@ void TibParser::advance() {
 void TibParser::error() {
     // Current token is error
     std::stringstream ss;
-    ss << "Failure!" << std::endl << "  " << this->token.to_str() << std::endl;
+    ss << "Unexpected token " << this->token.to_str() << std::endl;
     throw ss.str();
 }
 
@@ -85,9 +85,20 @@ Value TibParser::pl_9() {
         Value val = this->pl_9();
         return -val;
     } else {
-        return this->pl_13();
+        return this->pl_10();
     }
 
+}
+
+Value TibParser::pl_10() {
+    Value val1 = this->pl_13();
+    if (this->token == tokens::POW) {
+        this->match(tokens::POW);
+        Value val2 = this->pl_10();
+        return Value(val1 ^ val2);
+    } else {
+        return val1;
+    }
 }
 
 Value TibParser::pl_13() {

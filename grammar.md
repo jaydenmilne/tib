@@ -9,6 +9,7 @@ Based off [this table](http://tibasicdev.wikidot.com/68k:order-of-operations)
 | PL6           | -> | # + $         | # - $         | #
 | PL7           | -> | # * $         | # $           | # / $         | #
 | PL9           | -> | -#            | #
+| PL10          | -> | #^$           | #
 | PL13          | -> | (PL2)
 | PL14          | -> | [num]$        | .[num]        | rvar          | [string]
 

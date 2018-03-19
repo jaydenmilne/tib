@@ -3,7 +3,7 @@
 
 #include <string>
 #include <sstream>
-#include <math.h>
+#include <cmath>
 #include <functional>
 #include <cmath>
 
@@ -61,11 +61,14 @@ public:
             }
     }
 
+    double get_float() const;
+
     Value operator-();
     Value operator-(const Value& rhs);
     Value operator+(const Value& rhs);
     Value operator*(const Value& rhs);
     Value operator/(const Value& rhs);
+    Value operator^(const Value& param);
 
 };
 

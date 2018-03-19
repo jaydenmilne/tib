@@ -11,6 +11,7 @@ char TokenNames[NumTokens][11] = {
     "L_PAREN",
     "R_PAREN",
     "STRING",
+    "POW",
     "EOL",
     "EOF",
     "UNDEFINED"

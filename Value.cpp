@@ -4,6 +4,18 @@ bool is_int(double d) {
     return (fabs(roundf(d) - d) <= F_PRECISION);
 }
 
+double Value::get_float() const {
+    switch(this->type) {
+        case ValueTypes::FLOAT:
+            return this->f_val;
+        case ValueTypes::INT:
+            return this->i_val;
+        default:
+            throw "ERR:DATA TYPE";
+    }
+    return -1;
+}
+
 Value Value::operator-() {
     switch(this->type){
         case ValueTypes::INT:
@@ -55,6 +67,16 @@ Value Value::operator*(const Value& rhs) {
 
 Value Value::operator/(const Value& rhs) {
     double result = this->generic_compare(rhs, std::divides<double>());
+    if (is_int(result)) {
+        return Value(std::lround(result));
+    } else {
+        return Value(result);
+    }
+}
+
+Value Value::operator^(const Value& exp) {
+    double result = std::pow(this->get_float(), exp.get_float());
+
     if (is_int(result)) {
         return Value(std::lround(result));
     } else {

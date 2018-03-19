@@ -15,6 +15,7 @@ typedef enum tokens {
     L_PAREN,
     R_PAREN,
     STRING,
+    POW,
     EOL,
     EOF_,
     UNDEFINED
