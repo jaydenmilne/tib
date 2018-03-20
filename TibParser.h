@@ -19,6 +19,7 @@ class TibParser {
 
     void advance();
     void match(Tokens t);
+    bool match_if_is(Tokens type);
     void error();
 
     // Non Terminals
@@ -29,6 +30,7 @@ class TibParser {
     Value pl_9();
     Value pl_10();
     Value pl_13();
+    Value pl_13_5();
     Value pl_14();
     Value pl_15();
 

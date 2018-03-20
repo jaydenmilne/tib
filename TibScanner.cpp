@@ -68,6 +68,15 @@ void TibScanner::parse_char_operator(char ch) {
         case ')':
             this->add_token(Tokens::R_PAREN, TClass::OPERATOR, str);
             break;
+        case '{':
+            this->add_token(Tokens::L_CURLY, TClass::VALUE, str);
+            break;
+        case '}':
+            this->add_token(Tokens::R_CURLY, TClass::OPERATOR, str);
+            break;
+        case ',':
+            this->add_token(Tokens::COMMA, TClass::OPERATOR, str);
+            break;
         case '"':
             this->parse_string(ch);
             break;

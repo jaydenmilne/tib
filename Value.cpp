@@ -11,12 +11,15 @@ double Value::get_float() const {
         case ValueTypes::INT:
             return this->i_val;
         default:
-            throw "ERR:DATA TYPE";
+            throw "OOPS: Tried to get_float for a non-floatable value...";
     }
     return -1;
 }
 
 Value Value::detect_type(Value val) const {
+    // Lists are already done
+    if (val.type == ValueTypes::LIST)
+        return val;
     if (is_int(val.get_float())) {
         return Value(std::lround(val.get_float()));
     } else {
@@ -72,7 +75,44 @@ Value Value::operator/(const Value& rhs) {
 }
 
 Value Value::operator^(const Value& exp) {
-    return this->detect_type(std::pow(this->get_float(), exp.get_float()));
+    Value val;
+    switch(this->type) {
+        case ValueTypes::LIST: 
+            val.type = ValueTypes::LIST;
+            switch(exp.type) {
+                case ValueTypes::LIST:
+                    // Check to make sure they are the same size
+                    if (this->list.size() != exp.list.size())
+                        throw "ERR:DIM MISMATCH";
+                    for(std::vector<Value>::size_type i = 0; i != this->list.size(); i++) {
+                            // Allows for recursion and nested lists
+                            val.list.push_back(this->detect_type(this->list[i] ^ exp.list[i]));
+                        }
+                    return val;
+                default:
+                    // Loop over every element of base and apply operation
+                    for (auto& item : this->list) {
+                        val.list.push_back(item ^ exp);
+                    }
+                    return val;
+            }
+        default:
+            switch(exp.type) {
+                case ValueTypes::LIST: {
+                    val.type = ValueTypes::LIST;
+                    // Loop over every element of base and apply operation
+                    for (auto& item : exp.list) {
+                        val.list.push_back(*this ^ item);
+                    }
+                    return val;
+
+                }
+                default:
+                    // Both are not lists, free to just do get_float
+                return this->detect_type(std::pow(this->get_float(), exp.get_float()));
+            }
+    }
+
 }
 
 std::string Value::to_str() {
@@ -90,7 +130,7 @@ std::string Value::to_str() {
         {
             std::stringstream ss;
             ss << "{";
-            for (std::vector<Value>::size_type i; i < this->list.size(); i++) {
+            for (std::vector<Value>::size_type i = 0; i < this->list.size(); i++) {
                 ss << this->list[i].to_str();
                 if (i != this->list.size() - 1) {
                     ss << ", ";

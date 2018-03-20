@@ -22,6 +22,15 @@ void TibParser::match(Tokens t) {
     }
 }
 
+bool TibParser::match_if_is(Tokens type) {
+    if (this->token.type == type) {
+        this->advance();
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void TibParser::write_out_string(std::string str) {
 
     if (this->config.write) {
@@ -46,12 +55,10 @@ void TibParser::write_out_string(std::string str) {
 Value TibParser::pl_6() {
     Value v1 = this->pl_7();
 
-    if (this->token == tokens::PLUS) {
-        this->match(tokens::PLUS);
+    if (this->match_if_is(tokens::PLUS)) {
         Value v2 = this->pl_6();
         return Value(v1 + v2);
-    } else if (this->token == tokens::MINUS) {
-        this->match(tokens::MINUS);
+    } else if (this->match_if_is(tokens::MINUS)) {
         Value v2 = this->pl_6();
         return Value(v1 - v2);
     } else {
@@ -62,12 +69,10 @@ Value TibParser::pl_6() {
 Value TibParser::pl_7() {
     Value v1 = this->pl_9();
 
-    if (this->token == tokens::TIMES) {
-        this->match(tokens::TIMES);
+    if (this->match_if_is(tokens::TIMES)) {
         Value v2 = this->pl_7();
         return Value(v1 * v2);
-    } else if (this->token == tokens::DIVIDE) {
-        this->match(tokens::DIVIDE);
+    } else if (this->match_if_is(tokens::DIVIDE)) {
         Value v2 = this->pl_7();
         return Value(v1 / v2);
     } else if (this->token.clss == TClass::VALUE) {
@@ -80,8 +85,7 @@ Value TibParser::pl_7() {
 }
 
 Value TibParser::pl_9() {
-    if (this->token == tokens::MINUS) {
-        this->match(tokens::MINUS);
+    if (this->match_if_is(tokens::MINUS)) {
         Value val = this->pl_9();
         return -val;
     } else {
@@ -92,8 +96,7 @@ Value TibParser::pl_9() {
 
 Value TibParser::pl_10() {
     Value val1 = this->pl_13();
-    if (this->token == tokens::POW) {
-        this->match(tokens::POW);
+    if (this->match_if_is(tokens::POW)) {
         Value val2 = this->pl_10();
         return Value(val1 ^ val2);
     } else {
@@ -102,17 +105,51 @@ Value TibParser::pl_10() {
 }
 
 Value TibParser::pl_13() {
-    if (this->token == tokens::L_PAREN) {
-        this->match(tokens::L_PAREN);
+    if (this->match_if_is(tokens::L_PAREN)) {
         Value val = this->pl_6();
         // The TI-84 is very "flexible" with closing parentheses, so match it if we can
         if (this->token == tokens::R_PAREN)
             this->match(tokens::R_PAREN);
 
         return val;
+    } else if (this->match_if_is(tokens::L_CURLY)) {
+        Value val;
+        val.type = ValueTypes::LIST;
+        if (this->match_if_is(tokens::R_CURLY)) {
+            // Empty list
+            return val;
+        }
+        val = this->pl_13_5();
+        this->match_if_is(tokens::R_CURLY);
+        return val;
     } else {
         return this->pl_14();
     };
+}
+
+// This function is for parsing lists. It will always return a type list.
+// eg 1,2,3
+// {1}
+//    {2}
+//       {3}
+//    {2,3}
+// {1,2,3}
+Value TibParser::pl_13_5() {
+    // The first value we want to add as-is
+    Value val1;
+    // Empty lists are already handled in pl_13
+    val1 = this->pl_6();
+    Value val2;
+    if (this->match_if_is(tokens::COMMA)) {
+        // There is something else
+        val2 = this->pl_13_5();
+    }
+    Value val_list;
+    val_list.type = ValueTypes::LIST;
+    val_list.list.push_back(val1);
+    // Insert the elements ov val2 instead of pushing them back, this allows chaining.
+    val_list.list.insert(val_list.list.end(), val2.list.begin(), val2.list.end());
+    return val_list;
 }
 
 Value TibParser::pl_14() {
@@ -132,7 +169,7 @@ Value TibParser::pl_14() {
             this->match(tokens::NUM);
             return val;
         }
-    } else if (this->token == tokens::STRING) {
+    } else if (this->match_if_is(tokens::STRING)) {
         Value val(this->token.value);
         this->match(tokens::STRING);
         return val;

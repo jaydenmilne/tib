@@ -2,14 +2,17 @@
 
 unsigned const int NumTokens = 20;
 
-char TokenNames[NumTokens][11] = {
+char TokenNames[NumTokens][24] = {
     "NUM",
     "PLUS",
     "MINUS",
     "TIMES",
     "DIVIDE",
-    "L_PAREN",
-    "R_PAREN",
+    "LEFT PAREN",
+    "RIGHT PAREN",
+    "LEFT CURLY BRACE",
+    "RIGHT CURLY BRACE",
+    "COMMA",
     "STRING",
     "POW",
     "EOL",
