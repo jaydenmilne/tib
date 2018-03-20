@@ -16,6 +16,23 @@ double Value::get_float() const {
     return -1;
 }
 
+Value Value::detect_type(Value val) const {
+    if (is_int(val.get_float())) {
+        return Value(std::lround(val.get_float()));
+    } else {
+        return val;
+    }
+}
+
+Value Value::detect_type(double val) const {
+    if (is_int(val)) {
+        return Value(std::lround(val));
+    } else {
+        return Value(val);
+    }
+}
+
+
 Value Value::operator-() {
     switch(this->type){
         case ValueTypes::INT:
@@ -30,12 +47,7 @@ Value Value::operator-() {
 }
 
 Value Value::operator-(const Value& rhs) {
-    double result = this->generic_compare(rhs, std::minus<double>());
-    if (is_int(result)) {
-        return Value(std::lround(result));
-    } else {
-        return Value(result);
-    }
+    return this->detect_type(this->generic_compare(rhs, std::minus<double>()));
 }
 
 
@@ -48,40 +60,19 @@ Value Value::operator+(const Value& rhs) {
         return val;
     }
 
-    double result = this->generic_compare(rhs, std::plus<double>());
-    if (is_int(result)) {
-        return Value(std::lround(result));
-    } else {
-        return Value(result);
-    }
+    return this->detect_type(this->generic_compare(rhs, std::plus<double>()));
 }
 
 Value Value::operator*(const Value& rhs) {
-    double result = this->generic_compare(rhs, std::multiplies<double>());
-    if (is_int(result)) {
-        return Value(std::lround(result));
-    } else {
-        return Value(result);
-    }
+    return this->detect_type(this->generic_compare(rhs, std::multiplies<double>()));
 }
 
 Value Value::operator/(const Value& rhs) {
-    double result = this->generic_compare(rhs, std::divides<double>());
-    if (is_int(result)) {
-        return Value(std::lround(result));
-    } else {
-        return Value(result);
-    }
+    return this->detect_type(this->generic_compare(rhs, std::divides<double>()));
 }
 
 Value Value::operator^(const Value& exp) {
-    double result = std::pow(this->get_float(), exp.get_float());
-
-    if (is_int(result)) {
-        return Value(std::lround(result));
-    } else {
-        return Value(result);
-    }
+    return this->detect_type(std::pow(this->get_float(), exp.get_float()));
 }
 
 std::string Value::to_str() {
@@ -95,6 +86,19 @@ std::string Value::to_str() {
         }
         case ValueTypes::STRING:
             return this->s_val;
+        case ValueTypes::LIST:
+        {
+            std::stringstream ss;
+            ss << "{";
+            for (std::vector<Value>::size_type i; i < this->list.size(); i++) {
+                ss << this->list[i].to_str();
+                if (i != this->list.size() - 1) {
+                    ss << ", ";
+                }
+            }
+            ss << "}";
+            return ss.str();
+        }
         default:
             throw "Not Implemented Exception!";
     }

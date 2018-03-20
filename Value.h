@@ -6,13 +6,16 @@
 #include <cmath>
 #include <functional>
 #include <cmath>
+#include <vector>
 
 const static double F_PRECISION = 0.00000000001;
 
 typedef enum class v_types {
     INT,
     FLOAT,
-    STRING
+    STRING,
+    LIST,
+    MATRIX      // Not implemented for now
 } ValueTypes;
 
 // TODO: Implement some beautiful inheritance structure so that the same class
@@ -25,37 +28,87 @@ public:
     long int i_val;
     double f_val;
     std::string s_val;
-
+    std::vector<Value> list;
 
     ValueTypes type = v_types::FLOAT;
 
     Value(long int v) : i_val(v), type(v_types::INT) {};
     Value(double v) : f_val(v), type(v_types::FLOAT) {};
     Value(std::string v) : s_val(v), type(v_types::STRING) {};
+    Value(std::vector<Value> v_) : list(v_), type(v_types::LIST) {};
     Value() {};
 
     std::string to_str();
 
-    template<class OP> double generic_compare(const Value& rhs, OP action) {
-        switch (this->type) {
+    Value detect_type(Value val) const;
+    Value detect_type(double val) const;
+
+    template<class OP> Value generic_compare(const Value& rhs, OP action) {
+        return this->generic_compare(*this, rhs, action);
+    }
+
+    template<class OP> Value generic_compare(const Value& lhs, const Value& rhs, OP action) {
+        // TODO: Replace pyramid/switch case of doom with something better
+        switch (lhs.type) {
             case ValueTypes::INT:
                 switch(rhs.type) {
                     case ValueTypes::INT:
-                        return action(this->i_val, rhs.i_val);
+                        return this->detect_type(action(lhs.i_val, rhs.i_val));
                     case ValueTypes::FLOAT:
-                        return action(this->i_val, rhs.f_val);
+                        return this->detect_type(action(lhs.i_val, rhs.f_val));
+                    case ValueTypes::LIST: {
+                        // LHS is not list, RHS is
+                        Value val;
+                        val.type = ValueTypes::LIST;
+                        for (auto& item : rhs.list) {
+                            val.list.push_back(this->detect_type(this->generic_compare(lhs, item, action)));
+                        }
+                        return val;
+                    }
                     default:
                         throw "ERR:DATA TYPE";
                 };
             case ValueTypes::FLOAT:
                 switch(rhs.type) {
                     case ValueTypes::INT:
-                        return action(this->f_val, rhs.i_val);
+                        return this->detect_type(action(lhs.f_val, rhs.i_val));
                     case ValueTypes::FLOAT:
-                        return action(this->f_val, rhs.f_val);
+                        return this->detect_type(action(lhs.f_val, rhs.f_val));
+                    case ValueTypes::LIST: {
+                        // LHS is not list, RHS is
+                        Value val;
+                        val.type = ValueTypes::LIST;
+                        for (auto& item : rhs.list) {
+                            val.list.push_back(this->detect_type(this->generic_compare(lhs, item, action)));
+                        }
+                        return val;
+                    }
                     default:
-                        throw "ERR: DATA TYPE";
+                        throw "ERR: DATA TYPE"; 
                 }
+            case ValueTypes::LIST: {
+                Value val;
+                val.type = ValueTypes::LIST;
+                switch(rhs.type) {
+                    case ValueTypes::LIST:
+                        // Both sides are lists
+                        if (lhs.list.size() != rhs.list.size()) {
+                            throw "ERR: DIM MISMATCH";
+                        }
+
+                        for(std::vector<Value>::size_type i = 0; i != lhs.list.size(); i++) {
+                            // Allows for recursion and nested lists
+                            val.list.push_back(this->detect_type(this->generic_compare(lhs.list[i], rhs.list[i], action)));
+                        }
+                        return val;
+                    default:
+                        // LHS is list, RHS isn't, so iterate over LHS and apply RHS to each
+                        for (auto& item : lhs.list) {
+                            val.list.push_back(this->detect_type(this->generic_compare(item, rhs, action)));
+                        }
+                        return val;
+                }
+            }
             default:
                 throw "ERR: DATA TYPE";
             }
