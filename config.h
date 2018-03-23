@@ -9,7 +9,8 @@ typedef enum returncode {
     OK = 0,
     NoInputGiven = -1,
     UnableToOpenFile = -2,
-    DirtyWindowsUser = -3
+    DirtyWindowsUser = -3,
+    InvalidArgument = -4
 } ReturnCode;
 
 struct Config {
@@ -17,6 +18,8 @@ struct Config {
     bool quiet = false;
     bool write = false;
     bool write_tokens = false;
+    bool emulate = false;
+    bool strict = false;
     std::string input = "";
 };
 

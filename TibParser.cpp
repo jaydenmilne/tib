@@ -136,20 +136,17 @@ Value TibParser::pl_13() {
 // {1,2,3}
 Value TibParser::pl_13_5() {
     // The first value we want to add as-is
-    Value val1;
+    Value val, TEMP; // TEMP is for debugging only, it can be removed
+    val.type = ValueTypes::LIST;
     // Empty lists are already handled in pl_13
-    val1 = this->pl_6();
-    Value val2;
-    if (this->match_if_is(tokens::COMMA)) {
-        // There is something else
-        val2 = this->pl_13_5();
+    TEMP = this->pl_6();
+    val.list.push_back(TEMP);
+    while (this->match_if_is(tokens::COMMA)) {
+        // There is something to add
+        TEMP = this->pl_6();
+        val.list.push_back(TEMP);        
     }
-    Value val_list;
-    val_list.type = ValueTypes::LIST;
-    val_list.list.push_back(val1);
-    // Insert the elements ov val2 instead of pushing them back, this allows chaining.
-    val_list.list.insert(val_list.list.end(), val2.list.begin(), val2.list.end());
-    return val_list;
+    return val;
 }
 
 Value TibParser::pl_14() {
