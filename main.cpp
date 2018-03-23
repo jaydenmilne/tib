@@ -81,6 +81,8 @@ int main(int argc, char*argv[]) {
             ;
     };
 
+    cout << config.input << endl;
+
     TibScanner scanner(config);
 
     ReturnCode code = scanner.parse();

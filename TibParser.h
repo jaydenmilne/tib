@@ -21,6 +21,7 @@ class TibParser {
     void match(Tokens t);
     bool match_if_is(Tokens type);
     void error();
+    void error(std::string err);
 
     // Non Terminals
     void tib_program();

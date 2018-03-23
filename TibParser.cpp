@@ -14,6 +14,12 @@ void TibParser::error() {
     throw ss.str();
 }
 
+void TibParser::error(std::string text) {
+    std::stringstream ss;
+    ss << "Error: " << text << " at token " << this->token.to_str() << std::endl;
+    throw ss.str();
+}
+
 void TibParser::match(Tokens t) {
     if (this->token.type == t) {
         this->advance();
@@ -107,9 +113,12 @@ Value TibParser::pl_10() {
 Value TibParser::pl_13() {
     if (this->match_if_is(tokens::L_PAREN)) {
         Value val = this->pl_6();
-        // The TI-84 is very "flexible" with closing parentheses, so match it if we can
-        if (this->token == tokens::R_PAREN)
+        
+        if (this->config.strict) {
             this->match(tokens::R_PAREN);
+        } else {
+            this->match_if_is(tokens::R_PAREN);
+        }
 
         return val;
     } else if (this->match_if_is(tokens::L_CURLY)) {
@@ -120,7 +129,13 @@ Value TibParser::pl_13() {
             return val;
         }
         val = this->pl_13_5();
-        this->match_if_is(tokens::R_CURLY);
+
+        if (this->config.strict) {
+            this->match(tokens::R_CURLY);
+        } else {
+            this->match_if_is(tokens::R_CURLY);
+        }
+
         return val;
     } else {
         return this->pl_14();
@@ -141,10 +156,21 @@ Value TibParser::pl_13_5() {
     // Empty lists are already handled in pl_13
     TEMP = this->pl_6();
     val.list.push_back(TEMP);
+
+    if (this->config.emulate && val.list[0].type != ValueTypes::INT && val.list[0].type != ValueTypes::FLOAT) {
+        // Tried to put a non-int value in a list, which the TI-84 does not allow.
+        this->error("ERR:DATA TYPE, tried to put a non-number into a list and strict mode enabled");
+    }
     while (this->match_if_is(tokens::COMMA)) {
         // There is something to add
         TEMP = this->pl_6();
-        val.list.push_back(TEMP);        
+        val.list.push_back(TEMP);  
+
+        if (this->config.emulate && val.list[0].type != ValueTypes::INT && val.list[0].type != ValueTypes::FLOAT) {
+            // Tried to put a non-int value in a list, which the TI-84 does not allow.
+            this->error("ERR:DATA TYPE, tried to put a non-number into a list and strict mode enabled");
+    }
+
     }
     return val;
 }
@@ -172,7 +198,8 @@ Value TibParser::pl_14() {
         return val;
     }
     else {
-        throw "Not implemented!";
+        this->error("Oops: This token is not implemented, try again later.");
+        return Value(-1.0);
     }
     
 }
