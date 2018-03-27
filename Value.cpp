@@ -125,7 +125,7 @@ std::string Value::to_str() {
             return ss.str();
         }
         case ValueTypes::STRING:
-            return this->s_val;
+            return '"' + this->s_val + '"';
         case ValueTypes::LIST:
         {
             std::stringstream ss;

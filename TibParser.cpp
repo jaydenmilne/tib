@@ -192,7 +192,7 @@ Value TibParser::pl_14() {
             this->match(tokens::NUM);
             return val;
         }
-    } else if (this->match_if_is(tokens::STRING)) {
+    } else if (this->token == tokens::STRING) {
         Value val(this->token.value);
         this->match(tokens::STRING);
         return val;
@@ -209,7 +209,8 @@ void TibParser::statement() {
     // Set to ans?
     if (this->token == tokens::EOL)
         return;
-    std::cout << this->pl_6().to_str();
+    Value result = this->pl_6();
+    std::cout << result.to_str();
     std::cout << std::endl;
 }
 

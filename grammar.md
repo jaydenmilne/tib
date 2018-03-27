@@ -10,8 +10,8 @@ Based off [this table](http://tibasicdev.wikidot.com/68k:order-of-operations)
 | PL7           | -> | # * $         | # $           | # / $         | #
 | PL9           | -> | -#            | #
 | PL10          | -> | #^$           | #
-| PL13          | -> | (PL2)         | (PL2'EOL'     | {PL13_5'EOL'  | {PL13
-| PL13_5        | -> | PL2           | PL2,$         | }
+| PL13          | -> | (PL2)         | (PL2'EOL'     | {PL13_5'EOL'  | {PL13}
+| PL13_5        | -> | PL2           | PL2,$
 | PL14          | -> | [num]$        | .[num]        | rvar          | [string]
 
 $ = recursion

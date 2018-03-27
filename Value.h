@@ -7,6 +7,7 @@
 #include <functional>
 #include <cmath>
 #include <vector>
+#include <iostream>
 
 const static double F_PRECISION = 0.00000000001;
 

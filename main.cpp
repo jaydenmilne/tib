@@ -32,7 +32,6 @@ ReturnCode parse_options(int argc, char* argv[], Config& config) {
 
     // Start at two to ignore command and the first paramater which must be the input file
     for (int i = 1; i < argc; i++) {
-
         std::string arg = argv[i];
         if (arg == "--debug" || arg == "-d")
             config.debug = true;
@@ -50,7 +49,7 @@ ReturnCode parse_options(int argc, char* argv[], Config& config) {
             config.emulate = true;
         else if (arg == "--strict" || arg == "-s")
             config.strict = true;
-        else if (arg[0] != '-') {
+        else if (arg[0] != '-' && arg[0] != ' ') {
             config.input = arg;
         }
         else {
@@ -81,11 +80,11 @@ int main(int argc, char*argv[]) {
             ;
     };
 
-    cout << config.input << endl;
-
     TibScanner scanner(config);
 
     ReturnCode code = scanner.parse();
+    if (code)
+        return code;
 
     TibParser parser(scanner.parsed_tokens, config);
     parser.parse();
