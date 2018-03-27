@@ -4,6 +4,8 @@ Quick and dirty test runner for tib
 
 import os
 import subprocess
+import time
+import glob
 from collections import namedtuple
 
 TIB_EXEC = '..' + os.path.sep + 'tib'
@@ -15,38 +17,36 @@ RETV = 'retval='
 DESC = 'desc='
 NAME = 'name='
 
-class TestInfo:
-    __init__
-
-
 TestInfo = namedtuple('test_info', ['retval', 'args', 'desc', 'name'])
 TestFailureInfo = namedtuple('test_failure_info', ['info', 'filename', 'reason'])
 
-tests = [x for x in os.listdir() if x.endswith('.tib')]
-tests_output = [x for x in os.listdir() if x.endswith('.tib.out')]
+tests = [y for x in os.walk('.') for y in glob.glob(os.path.join(x[0], '*.tib'))]
+tests_output = [y for x in os.walk('.') for y in glob.glob(os.path.join(x[0], '*.tib.out'))]
 
-
+start = time.time()
 
 def get_test_info(filename):
     file = open(filename)
 
-    info = TestInfo(0,'','',filename)
+    retval = 0
+    args = ""
+    desc = ""
+    name = ""
+
     line = file.readline()
 
     while line.startswith(TAG_DELIM):
         line = line[len(TAG_DELIM):]
-        print(line)
         if line.startswith(RETV):
-            info.retval = int(line[len(RETV):])
-            print (info.retval)
+            retval = int(line[len(RETV):])
         elif line.startswith(ARGS):
-            info.args = line[len(ARGS):]
+            args = line[len(ARGS):].rstrip()
         elif line.startswith(DESC):
-            info.desc = line[len(DESC):]
+            desc = line[len(DESC):]
         elif line.startswith(NAME):
-            info.name = line[len(NAME):]
+            name = line[len(NAME):]
     
-    return info
+    return TestInfo(retval, args, desc, name)
 
 failures = []
 count = 0
@@ -66,21 +66,24 @@ for test in tests:
     results = subprocess.run([TIB_EXEC, test, args], stdout=subprocess.PIPE)
 
     if results.returncode != info.retval:
+        print(results.stdout)
         failures.append(TestFailureInfo(info, test, "Expected return code {}, got {}".format(info.retval, results.returncode)))
         continue
 
     if test + '.out' in tests_output:
         output_file = open(test + '.out')
-        output = output_file.read()
+        output = output_file.read().replace('\r','')
         output_file.close()
 
-        if results.stdout != output:
+        if str(results.stdout).replace('\r','') != output:
+            print(results.stdout)
             failures.append(TestFailureInfo(info, test, "Output did not match!"))
+            print(output)
             continue
 
-print("{}/{} tests passed.".format(count-len(failures), count))
+print("{}/{} tests passed in {}s".format(count-len(failures), count, time.time() - start))
 
 for failure in failures:
-    print("{filename} - {reason}".format(testname=failure.info.name, filename=failure.filename, reason=failure.reason))
+    print("\t{filename} \n\t\t{reason}".format(filename=failure.filename[2:], reason=failure.reason))
 
 print("\nDone.")    

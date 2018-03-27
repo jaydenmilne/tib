@@ -6,7 +6,7 @@
                 "type": "cppdbg",
                 "request": "launch",
                 "program": "${workspaceRoot}/tib.exe",
-                "args": ["test_input\\lists.txt"],
+                "args": ["-e", "test_input\\lists.txt"],
                 "stopAtEntry": false,
                 "cwd": "${workspaceRoot}",
                 "environment": [],

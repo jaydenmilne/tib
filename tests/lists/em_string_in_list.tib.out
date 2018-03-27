@@ -1,0 +1,1 @@
+Error: ERR:DATA TYPE, tried to put a non-number into a list and strict mode enabled at token RIGHT CURLY BRACE/OPERATOR with value "}" on line 2
