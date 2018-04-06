@@ -61,10 +61,10 @@ void TibParser::write_out_string(std::string str) {
 Value TibParser::pl_2(){
     Value v1 = this->pl_3();
 
-    if (this->match_if_is(tokens::OR)) {
+    if (this->match_if_is(Tokens::OR)) {
         Value v2 = this->pl_2();
         return Value(static_cast<long>(v1 || v2));
-    } else if (this->match_if_is(tokens::XOR)) {
+    } else if (this->match_if_is(Tokens::XOR)) {
         Value v2 = this->pl_2();
         return Value(static_cast<long>(!v1 != !v2));
     } else {
@@ -75,7 +75,7 @@ Value TibParser::pl_2(){
 Value TibParser::pl_3(){
     Value v1 = this->pl_4();
 
-    if (this->match_if_is(tokens::AND)) {
+    if (this->match_if_is(Tokens::AND)) {
         Value v2 = this->pl_3();
         return Value(static_cast<long>(v1 && v2));
     } else {
@@ -84,7 +84,7 @@ Value TibParser::pl_3(){
 }
 
 Value TibParser::pl_4(){
-    if (this->match_if_is(tokens::NOT)) {
+    if (this->match_if_is(Tokens::NOT)) {
         Value v1 = this->pl_2();
         return Value(static_cast<long>(!v1));
     } else {
@@ -96,28 +96,28 @@ Value TibParser::pl_5(){
     Value v1 = this->pl_6();
 
     switch(this->token.type) {
-        case tokens::EQUAL: {
+        case Tokens::EQUAL: {
             Value v2 = this->pl_5();
 
             break;
         }
-        case tokens::N_EQUAL: {
+        case Tokens::N_EQUAL: {
             Value v2 = this->pl_5();
             break;
         }
-        case tokens::GREATER: {
+        case Tokens::GREATER: {
             Value v2 = this->pl_5();
             break;
         }
-        case tokens::GREQ: {
+        case Tokens::GREQ: {
             Value v2 = this->pl_5();
             break;
         }
-        case tokens::LESS: {
+        case Tokens::LESS: {
             Value v2 = this->pl_5();
             break;
         }
-        case tokens::LESSEQ: {
+        case Tokens::LESSEQ: {
             Value v2 = this->pl_5();
             break;
         }
@@ -130,10 +130,10 @@ Value TibParser::pl_5(){
 Value TibParser::pl_6() {
     Value v1 = this->pl_7();
 
-    if (this->match_if_is(tokens::PLUS)) {
+    if (this->match_if_is(Tokens::PLUS)) {
         Value v2 = this->pl_6();
         return Value(v1 + v2);
-    } else if (this->match_if_is(tokens::MINUS)) {
+    } else if (this->match_if_is(Tokens::MINUS)) {
         Value v2 = this->pl_6();
         return Value(v1 - v2);
     } else {
@@ -144,10 +144,10 @@ Value TibParser::pl_6() {
 Value TibParser::pl_7() {
     Value v1 = this->pl_9();
 
-    if (this->match_if_is(tokens::TIMES)) {
+    if (this->match_if_is(Tokens::TIMES)) {
         Value v2 = this->pl_7();
         return Value(v1 * v2);
-    } else if (this->match_if_is(tokens::DIVIDE)) {
+    } else if (this->match_if_is(Tokens::DIVIDE)) {
         Value v2 = this->pl_7();
         return Value(v1 / v2);
     } else if (this->token.clss == TClass::VALUE) {
@@ -160,7 +160,7 @@ Value TibParser::pl_7() {
 }
 
 Value TibParser::pl_9() {
-    if (this->match_if_is(tokens::MINUS)) {
+    if (this->match_if_is(Tokens::MINUS)) {
         Value val = this->pl_9();
         return -val;
     } else {
@@ -171,7 +171,7 @@ Value TibParser::pl_9() {
 
 Value TibParser::pl_10() {
     Value val1 = this->pl_13();
-    if (this->match_if_is(tokens::POW)) {
+    if (this->match_if_is(Tokens::POW)) {
         Value val2 = this->pl_10();
         return Value(val1.exp(val2));
     } else {
@@ -180,29 +180,29 @@ Value TibParser::pl_10() {
 }
 
 Value TibParser::pl_13() {
-    if (this->match_if_is(tokens::L_PAREN)) {
+    if (this->match_if_is(Tokens::L_PAREN)) {
         Value val = this->pl_2();
         
         if (this->config.strict) {
-            this->match(tokens::R_PAREN);
+            this->match(Tokens::R_PAREN);
         } else {
-            this->match_if_is(tokens::R_PAREN);
+            this->match_if_is(Tokens::R_PAREN);
         }
 
         return val;
-    } else if (this->match_if_is(tokens::L_CURLY)) {
+    } else if (this->match_if_is(Tokens::L_CURLY)) {
         Value val;
         val.type = ValueTypes::LIST;
-        if (this->match_if_is(tokens::R_CURLY)) {
+        if (this->match_if_is(Tokens::R_CURLY)) {
             // Empty list
             return val;
         }
         val = this->pl_13_5();
 
         if (this->config.strict) {
-            this->match(tokens::R_CURLY);
+            this->match(Tokens::R_CURLY);
         } else {
-            this->match_if_is(tokens::R_CURLY);
+            this->match_if_is(Tokens::R_CURLY);
         }
 
         return val;
@@ -230,7 +230,7 @@ Value TibParser::pl_13_5() {
         // Tried to put a non-int value in a list, which the TI-84 does not allow.
         this->error("ERR:DATA TYPE, tried to put a non-number into a list and strict mode enabled");
     }
-    while (this->match_if_is(tokens::COMMA)) {
+    while (this->match_if_is(Tokens::COMMA)) {
         // There is something to add
         TEMP = this->pl_2();
         val.list.push_back(TEMP);  
@@ -246,24 +246,24 @@ Value TibParser::pl_13_5() {
 
 Value TibParser::pl_14() {
 
-    if (this->token == tokens::NUM) {
+    if (this->token == Tokens::NUM) {
         if (this->token.value[0] == 'f') {
             // parse as float
             std::string copy = this->token.value;
             copy.erase(0,1);
             Value val(stod(copy));
-            this->match(tokens::NUM);
+            this->match(Tokens::NUM);
             return val;
 
         } else {
             // parse as int
             Value val(stol(this->token.value));
-            this->match(tokens::NUM);
+            this->match(Tokens::NUM);
             return val;
         }
-    } else if (this->token == tokens::STRING) {
+    } else if (this->token == Tokens::STRING) {
         Value val(this->token.value);
-        this->match(tokens::STRING);
+        this->match(Tokens::STRING);
         return val;
     }
     else {
@@ -276,7 +276,7 @@ Value TibParser::pl_14() {
 void TibParser::statement() {
     // For now, just call result since it's the only option
     // Set to ans?
-    if (this->token == tokens::EOL)
+    if (this->token == Tokens::EOL)
         return;
     Value result = this->pl_2();
     std::cout << result.to_str();
@@ -284,13 +284,13 @@ void TibParser::statement() {
 }
 
 void TibParser::tib_program() {
-    if (this->token == tokens::EOF_) {
-        this->match(tokens::EOF_);
+    if (this->token == Tokens::EOF_) {
+        this->match(Tokens::EOF_);
     } else {
         this->statement();
-        if (this->token == tokens::EOF_)
+        if (this->token == Tokens::EOF_)
             return;
-        this->match(tokens::EOL);
+        this->match(Tokens::EOL);
         this->tib_program();
     }
 }
