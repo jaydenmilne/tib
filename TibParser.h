@@ -26,6 +26,10 @@ class TibParser {
     // Non Terminals
     void tib_program();
     void statement();
+    Value pl_2();
+    Value pl_3();
+    Value pl_4();
+    Value pl_5();
     Value pl_6();
     Value pl_7();
     Value pl_9();

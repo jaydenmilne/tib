@@ -9,6 +9,15 @@ void TibScanner::add_token(Tokens type, TClass clss, std::string value) {
     this->add_token(type, clss, value, ln);
 }
 
+bool TibScanner::next(char desired) {
+    if (this->in_reader.input.peek() == desired) {
+        this->in_reader.get_ch();
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void TibScanner::parse_comment(char ch) {
     // Comments are ignored till the end of the line
         char n_char = 0;
@@ -83,12 +92,71 @@ void TibScanner::parse_char_operator(char ch) {
         case '^':
             this->add_token(Tokens::POW, TClass::OPERATOR, str);
             break;
+        case '=':
+            this->add_token(tokens::EQUAL, TClass::OPERATOR, str);
+            break;
         default:
-            this->add_token(Tokens::UNDEFINED, TClass::VALUE, str);
-            std::cout << "Warning: Unrecognized token " << str << std::endl;
+            this->parse_multi_char_operator(ch);
     }
 };
 
+void TibScanner::parse_multi_char_operator(char ch) {
+    std::string str(1, ch);
+
+    switch(ch) {
+        case '>':
+            if (this->next('=')) {   
+                this->add_token(tokens::GREQ, TClass::OPERATOR, ">=");
+            } else {
+                this->add_token(tokens::GREATER, TClass::OPERATOR, str);
+            }
+            break;
+        case '<':
+            if (this->next('=')) {
+                this->add_token(tokens::LESSEQ, TClass::OPERATOR, "<=");
+            } else {
+                this->add_token(tokens::LESS, TClass::OPERATOR, str);
+            }
+            break;
+        case 'o':
+            if (this->next('r')) {
+                this->add_token(tokens::OR, TClass::OPERATOR, "or");
+            }
+            else {
+                this->add_token(Tokens::UNDEFINED, TClass::VALUE, str);
+            }
+            break;
+        case 'a':
+            if (this->next('n') && this->next('d')) {
+                this->add_token(tokens::AND, TClass::OPERATOR, "and");
+            } else { // TODO: this won't have the correct token in str if n matches and d doesn't
+                this->add_token(Tokens::UNDEFINED, TClass::VALUE, str);
+            }
+            break;
+        case 'n':
+            if (this->next('o') && this->next('t') && this->next('(')) {
+                this->add_token(tokens::NOT, TClass::OPERATOR, "not(");
+            } else {
+                this->add_token(tokens::UNDEFINED, TClass::VALUE, str);
+            }
+            break;
+        case 'x':
+            if (this->next('o') && this->next('r')) {
+                this->add_token(tokens::XOR, TClass::OPERATOR, "xor");
+            } else {
+                this->add_token(tokens::UNDEFINED, TClass::VALUE, str);
+            }
+            break;
+        case '!':
+            if (this->next('=')) {
+                this->add_token(tokens::N_EQUAL, TClass::OPERATOR, "!=");
+            }
+            break;
+        default:
+            this->add_token(Tokens::UNDEFINED, TClass::VALUE, str);
+            std::cout << "Warning: Unrecognized token " << str << std::endl;
+        }
+}
 void TibScanner::parse_number(char ch) {
     if (isdigit(ch) || ch == '.') {
         bool is_float = false;

@@ -14,8 +14,10 @@
 class TibScanner {
     void add_token(Tokens type, TClass clss, std::string value, unsigned int line_number);
     void add_token(Tokens type, TClass clss, std::string value);
+    bool next(char desired);
     void parse_number(char ch);
     void parse_char_operator(char ch);
+    void parse_multi_char_operator(char ch);
     void parse_comment(char ch);
     void parse_string(char ch);
 

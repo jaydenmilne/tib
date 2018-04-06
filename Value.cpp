@@ -74,7 +74,7 @@ Value Value::operator/(const Value& rhs) {
     return this->detect_type(this->generic_compare(rhs, std::divides<double>()));
 }
 
-Value Value::operator^(const Value& exp) {
+Value Value::exp(const Value& exp) {
     Value val;
     switch(this->type) {
         case ValueTypes::LIST: 
@@ -86,13 +86,13 @@ Value Value::operator^(const Value& exp) {
                         throw "ERR:DIM MISMATCH";
                     for(std::vector<Value>::size_type i = 0; i != this->list.size(); i++) {
                             // Allows for recursion and nested lists
-                            val.list.push_back(this->detect_type(this->list[i] ^ exp.list[i]));
+                            val.list.push_back(this->detect_type(this->list[i].exp(exp.list[i])));
                         }
                     return val;
                 default:
                     // Loop over every element of base and apply operation
                     for (auto& item : this->list) {
-                        val.list.push_back(item ^ exp);
+                        val.list.push_back(item.exp(exp));
                     }
                     return val;
             }
@@ -102,7 +102,7 @@ Value Value::operator^(const Value& exp) {
                     val.type = ValueTypes::LIST;
                     // Loop over every element of base and apply operation
                     for (auto& item : exp.list) {
-                        val.list.push_back(*this ^ item);
+                        val.list.push_back(this->exp(item));
                     }
                     return val;
 

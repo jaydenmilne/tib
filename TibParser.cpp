@@ -58,6 +58,75 @@ void TibParser::write_out_string(std::string str) {
 
 }
 
+Value TibParser::pl_2(){
+    Value v1 = this->pl_3();
+
+    if (this->match_if_is(tokens::OR)) {
+        Value v2 = this->pl_2();
+        return Value(static_cast<long>(v1 || v2));
+    } else if (this->match_if_is(tokens::XOR)) {
+        Value v2 = this->pl_2();
+        return Value(static_cast<long>(!v1 != !v2));
+    } else {
+        return v1;
+    }
+}
+
+Value TibParser::pl_3(){
+    Value v1 = this->pl_4();
+
+    if (this->match_if_is(tokens::AND)) {
+        Value v2 = this->pl_3();
+        return Value(static_cast<long>(v1 && v2));
+    } else {
+        return v1;
+    }
+}
+
+Value TibParser::pl_4(){
+    if (this->match_if_is(tokens::NOT)) {
+        Value v1 = this->pl_2();
+        return Value(static_cast<long>(!v1));
+    } else {
+        return this->pl_5();
+    }
+}
+
+Value TibParser::pl_5(){
+    Value v1 = this->pl_6();
+
+    switch(this->token.type) {
+        case tokens::EQUAL: {
+            Value v2 = this->pl_5();
+
+            break;
+        }
+        case tokens::N_EQUAL: {
+            Value v2 = this->pl_5();
+            break;
+        }
+        case tokens::GREATER: {
+            Value v2 = this->pl_5();
+            break;
+        }
+        case tokens::GREQ: {
+            Value v2 = this->pl_5();
+            break;
+        }
+        case tokens::LESS: {
+            Value v2 = this->pl_5();
+            break;
+        }
+        case tokens::LESSEQ: {
+            Value v2 = this->pl_5();
+            break;
+        }
+        default:
+            break;
+    }
+    return v1;
+}
+
 Value TibParser::pl_6() {
     Value v1 = this->pl_7();
 
@@ -104,7 +173,7 @@ Value TibParser::pl_10() {
     Value val1 = this->pl_13();
     if (this->match_if_is(tokens::POW)) {
         Value val2 = this->pl_10();
-        return Value(val1 ^ val2);
+        return Value(val1.exp(val2));
     } else {
         return val1;
     }
@@ -112,7 +181,7 @@ Value TibParser::pl_10() {
 
 Value TibParser::pl_13() {
     if (this->match_if_is(tokens::L_PAREN)) {
-        Value val = this->pl_6();
+        Value val = this->pl_2();
         
         if (this->config.strict) {
             this->match(tokens::R_PAREN);
@@ -154,7 +223,7 @@ Value TibParser::pl_13_5() {
     Value val, TEMP; // TEMP is for debugging only, it can be removed
     val.type = ValueTypes::LIST;
     // Empty lists are already handled in pl_13
-    TEMP = this->pl_6();
+    TEMP = this->pl_2();
     val.list.push_back(TEMP);
 
     if (this->config.emulate && val.list[0].type != ValueTypes::INT && val.list[0].type != ValueTypes::FLOAT) {
@@ -163,7 +232,7 @@ Value TibParser::pl_13_5() {
     }
     while (this->match_if_is(tokens::COMMA)) {
         // There is something to add
-        TEMP = this->pl_6();
+        TEMP = this->pl_2();
         val.list.push_back(TEMP);  
 
         if (this->config.emulate && val.list[0].type != ValueTypes::INT && val.list[0].type != ValueTypes::FLOAT) {
@@ -209,7 +278,7 @@ void TibParser::statement() {
     // Set to ans?
     if (this->token == tokens::EOL)
         return;
-    Value result = this->pl_6();
+    Value result = this->pl_2();
     std::cout << result.to_str();
     std::cout << std::endl;
 }
