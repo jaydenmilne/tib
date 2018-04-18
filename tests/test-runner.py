@@ -74,9 +74,10 @@ for test in tests:
         output_file = open(test + '.out')
         output = output_file.read().replace('\r','')
         output_file.close()
+        std_out = results.stdout.decode('unicode_escape').replace('\r','')
 
-        if str(results.stdout).replace('\r','') != output:
-            print(results.stdout)
+        if std_out != output:
+            print(std_out)
             failures.append(TestFailureInfo(info, test, "Output did not match!"))
             print(output)
             continue
