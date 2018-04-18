@@ -133,7 +133,7 @@ std::string Value::to_str() {
             for (std::vector<Value>::size_type i = 0; i < this->list.size(); i++) {
                 ss << this->list[i].to_str();
                 if (i != this->list.size() - 1) {
-                    ss << ", ";
+                    ss << " ";
                 }
             }
             ss << "}";
