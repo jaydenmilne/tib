@@ -86,6 +86,7 @@ Value TibParser::pl_3(){
 Value TibParser::pl_4(){
     if (this->match_if_is(Tokens::NOT)) {
         Value v1 = this->pl_2();
+        this->match_if_is(Tokens::R_PAREN);
         return Value(static_cast<long>(!v1));
     } else {
         return this->pl_5();
