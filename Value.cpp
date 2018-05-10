@@ -74,6 +74,26 @@ Value Value::operator/(const Value& rhs) {
     return this->detect_type(this->generic_compare(rhs, std::divides<double>()));
 }
 
+bool Value::operator==(const Value& rhs) {
+    return static_cast<bool>(this->generic_compare(rhs, std::equal_to<bool>()));
+};
+bool Value::operator!=(const Value& rhs){
+    return static_cast<bool>(this->generic_compare(rhs, std::not_equal_to<bool>()));
+};
+bool Value::operator<(const Value& rhs){
+    return static_cast<bool>(this->generic_compare(rhs, std::less<bool>()));
+};
+bool Value::operator>(const Value& rhs){
+    return static_cast<bool>(this->generic_compare(rhs, std::greater<bool>()));
+};
+bool Value::operator<=(const Value& rhs){
+    return static_cast<bool>(this->generic_compare(rhs, std::less_equal<bool>()));
+};
+bool Value::operator>=(const Value& rhs){
+    return static_cast<bool>(this->generic_compare(rhs, std::greater_equal<bool>()));
+};
+
+
 Value Value::exp(const Value& exp) {
     Value val;
     switch(this->type) {

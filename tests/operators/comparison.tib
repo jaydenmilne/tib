@@ -1,0 +1,10 @@
+1 = 2
+1 = 1
+1 < 2
+1 <= 2
+2 < 1
+2 > 1
+2 >= 1
+{1,2} < {3,4}  # should return {1 1}
+"asfd" = "asdf"
+"asdf" < "asdf2" # illegal on ti-84

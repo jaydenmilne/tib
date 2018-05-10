@@ -96,35 +96,26 @@ Value TibParser::pl_4(){
 Value TibParser::pl_5(){
     Value v1 = this->pl_6();
 
-    switch(this->token.type) {
-        case Tokens::EQUAL: {
-            Value v2 = this->pl_5();
-
-            break;
-        }
-        case Tokens::N_EQUAL: {
-            Value v2 = this->pl_5();
-            break;
-        }
-        case Tokens::GREATER: {
-            Value v2 = this->pl_5();
-            break;
-        }
-        case Tokens::GREQ: {
-            Value v2 = this->pl_5();
-            break;
-        }
-        case Tokens::LESS: {
-            Value v2 = this->pl_5();
-            break;
-        }
-        case Tokens::LESSEQ: {
-            Value v2 = this->pl_5();
-            break;
-        }
-        default:
-            break;
+    if (this->match_if_is(Tokens::EQUAL)) {
+        Value v2 = this->pl_5();
+        return Value(static_cast<long>(v1 == v2));
+    } else if (this->match_if_is(Tokens::N_EQUAL)) {
+        Value v2 = this->pl_5();
+        return Value(static_cast<long>(v1 != v2));
+    } else if (this->match_if_is(Tokens::GREATER)) {
+        Value v2 = this->pl_5();
+        return Value(static_cast<long>(v1 > v2));
+    } else if (this->match_if_is(Tokens::GREQ)) {
+        Value v2 = this->pl_5();
+        return Value(static_cast<long>(v1 >= v2));
+    } else if (this->match_if_is(Tokens::LESS)) {
+        Value v2 = this->pl_5();
+        return Value(static_cast<long>(v1 < v2));
+    } else if (this->match_if_is(Tokens::LESSEQ)) {
+        Value v2 = this->pl_5();
+        return Value(static_cast<long>(v1 <= v2));
     }
+
     return v1;
 }
 
