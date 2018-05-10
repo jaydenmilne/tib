@@ -137,12 +137,12 @@ public:
     Value operator*(const Value& rhs);
     Value operator/(const Value& rhs);
 
-    bool operator==(const Value& rhs);
-    bool operator!=(const Value& rhs);
-    bool operator<(const Value& rhs);
-    bool operator>(const Value& rhs);
-    bool operator<=(const Value& rhs);
-    bool operator>=(const Value& rhs);
+    Value operator==(const Value& rhs);
+    Value operator!=(const Value& rhs);
+    Value operator<(const Value& rhs);
+    Value operator>(const Value& rhs);
+    Value operator<=(const Value& rhs);
+    Value operator>=(const Value& rhs);
     Value exp(const Value& param);
 
 };

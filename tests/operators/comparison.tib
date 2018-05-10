@@ -6,5 +6,6 @@
 2 > 1
 2 >= 1
 {1,2} < {3,4}  # should return {1 1}
-"asfd" = "asdf"
-"asdf" < "asdf2" # illegal on ti-84
+1.0 = 1.0
+1.0 > 2
+1.4325 > 1.4322

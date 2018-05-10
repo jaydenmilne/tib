@@ -74,23 +74,23 @@ Value Value::operator/(const Value& rhs) {
     return this->detect_type(this->generic_compare(rhs, std::divides<double>()));
 }
 
-bool Value::operator==(const Value& rhs) {
-    return static_cast<bool>(this->generic_compare(rhs, std::equal_to<bool>()));
+Value Value::operator==(const Value& rhs) {
+    return this->generic_compare(rhs, std::equal_to<double>());
 };
-bool Value::operator!=(const Value& rhs){
-    return static_cast<bool>(this->generic_compare(rhs, std::not_equal_to<bool>()));
+Value Value::operator!=(const Value& rhs){
+    return this->generic_compare(rhs, std::not_equal_to<double>());
 };
-bool Value::operator<(const Value& rhs){
-    return static_cast<bool>(this->generic_compare(rhs, std::less<bool>()));
+Value Value::operator<(const Value& rhs){
+    return this->generic_compare(rhs, std::less<double>());
 };
-bool Value::operator>(const Value& rhs){
-    return static_cast<bool>(this->generic_compare(rhs, std::greater<bool>()));
+Value Value::operator>(const Value& rhs){
+    return this->generic_compare(rhs, std::greater<double>());
 };
-bool Value::operator<=(const Value& rhs){
-    return static_cast<bool>(this->generic_compare(rhs, std::less_equal<bool>()));
+Value Value::operator<=(const Value& rhs){
+    return this->generic_compare(rhs, std::less_equal<double>());
 };
-bool Value::operator>=(const Value& rhs){
-    return static_cast<bool>(this->generic_compare(rhs, std::greater_equal<bool>()));
+Value Value::operator>=(const Value& rhs){
+    return this->generic_compare(rhs, std::greater_equal<double>());
 };
 
 

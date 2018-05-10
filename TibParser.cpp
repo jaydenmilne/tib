@@ -98,22 +98,22 @@ Value TibParser::pl_5(){
 
     if (this->match_if_is(Tokens::EQUAL)) {
         Value v2 = this->pl_5();
-        return Value(static_cast<long>(v1 == v2));
+        return Value(v1 == v2);
     } else if (this->match_if_is(Tokens::N_EQUAL)) {
         Value v2 = this->pl_5();
-        return Value(static_cast<long>(v1 != v2));
+        return Value(v1 != v2);
     } else if (this->match_if_is(Tokens::GREATER)) {
         Value v2 = this->pl_5();
-        return Value(static_cast<long>(v1 > v2));
+        return Value(v1 > v2);
     } else if (this->match_if_is(Tokens::GREQ)) {
         Value v2 = this->pl_5();
-        return Value(static_cast<long>(v1 >= v2));
+        return Value(v1 >= v2);
     } else if (this->match_if_is(Tokens::LESS)) {
         Value v2 = this->pl_5();
-        return Value(static_cast<long>(v1 < v2));
+        return Value(v1 < v2);
     } else if (this->match_if_is(Tokens::LESSEQ)) {
         Value v2 = this->pl_5();
-        return Value(static_cast<long>(v1 <= v2));
+        return Value(v1 <= v2);
     }
 
     return v1;
