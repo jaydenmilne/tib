@@ -75,9 +75,15 @@ Value Value::operator/(const Value& rhs) {
 }
 
 Value Value::operator==(const Value& rhs) {
+    if (this->type == ValueTypes::STRING && rhs.type == ValueTypes::STRING) {
+        return Value(static_cast<long>(this->s_val == rhs.s_val));
+    }
     return this->generic_compare(rhs, std::equal_to<double>());
 };
 Value Value::operator!=(const Value& rhs){
+    if (this->type == ValueTypes::STRING && rhs.type == ValueTypes::STRING) {
+        return Value(static_cast<long>(this->s_val != rhs.s_val));
+    }
     return this->generic_compare(rhs, std::not_equal_to<double>());
 };
 Value Value::operator<(const Value& rhs){
