@@ -25,6 +25,8 @@ char TokenNames[NumTokens][24] = {
     "COMMA",
     "STRING",
     "POW",
+    "VARIABLE",
+    "STORE",
     "EOL",
     "EOF",
     "UNDEFINED"

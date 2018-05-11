@@ -18,6 +18,10 @@ bool TibScanner::next(char desired) {
     }
 }
 
+bool is_uppercase_letter(char ch) {
+    return ch >= 65 && ch <= 90;
+}
+
 void TibScanner::parse_comment(char ch) {
     // Comments are ignored till the end of the line
         char n_char = 0;
@@ -57,7 +61,8 @@ void TibScanner::parse_char_operator(char ch) {
             this->add_token(Tokens::PLUS, TClass::OPERATOR, str);
             break;
         case '-':
-            this->add_token(Tokens::MINUS, TClass::OPERATOR, str);
+            if (!this->next('-'))
+                this->add_token(Tokens::MINUS, TClass::OPERATOR, str);
             break;
         case '*':
             this->add_token(Tokens::TIMES, TClass::OPERATOR, str);
@@ -96,6 +101,10 @@ void TibScanner::parse_char_operator(char ch) {
             this->add_token(tokens::EQUAL, TClass::OPERATOR, str);
             break;
         default:
+            if (is_uppercase_letter(ch)) {
+                this->add_token(Tokens::VAR, TClass::VALUE, str);
+                break;
+            }
             this->parse_multi_char_operator(ch);
     }
 };
@@ -104,6 +113,12 @@ void TibScanner::parse_multi_char_operator(char ch) {
     std::string str(1, ch);
 
     switch(ch) {
+        case '-':
+            if (this->next('>')) {
+                this->add_token(tokens::STO, TClass::OPERATOR, "->");
+            } else {
+                this->add_token(tokens::UNDEFINED, TClass::VALUE, "-"); // should be impossible
+            }
         case '>':
             if (this->next('=')) {   
                 this->add_token(tokens::GREQ, TClass::OPERATOR, ">=");

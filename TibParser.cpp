@@ -258,6 +258,11 @@ Value TibParser::pl_14() {
         this->match(Tokens::STRING);
         return val;
     }
+    else if (this->token == Tokens::VAR) {
+        Value val = this->vars.get(this->token.value);
+        this->match(Tokens::VAR);
+        return val;
+    }
     else {
         this->error("Oops: This token is not implemented, try again later.");
         return Value(-1.0);

@@ -1,0 +1,7 @@
+#!args=--write-tokens
+ABCDEFGHIJKLMNOPQRSTUV # Detect variables on one line
+A 
+B 
+X
+Y
+Z

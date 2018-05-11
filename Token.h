@@ -29,6 +29,8 @@ typedef enum tokens {
     COMMA,
     STRING,
     POW,
+    VAR,
+    STO,
     EOL,
     EOF_,
     UNDEFINED
@@ -36,7 +38,7 @@ typedef enum tokens {
 
 typedef enum token_classes {
     VALUE,       // Anything that has to do with getting a like constants / operators
-    VAR,         // Any variable (rvar, list str1)
+    UNSUSED,
     KEYWORD,     // Lbl Goto Disp etc (must go at beginning of line)
     FUNCTION,    // Anything that takes paramaters & has parentheses sin() output()
     OPERATOR,
