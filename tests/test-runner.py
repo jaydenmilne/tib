@@ -77,10 +77,14 @@ for test in tests:
         std_out = results.stdout.decode('unicode_escape').replace('\r','')
 
         if std_out != output:
+            print("{}\nGot:".format(test))
             print(std_out)
             failures.append(TestFailureInfo(info, test, "Output did not match!"))
+            print("\nExpected:")
             print(output)
             continue
+    else:
+        print("Warning! {} is missing a correct output file!".format(test))
 
 print("{}/{} tests passed in {}s".format(count-len(failures), count, time.time() - start))
 
