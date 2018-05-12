@@ -74,10 +74,11 @@ Value TibParser::pl_2(){
 
     if (this->match_if_is(Tokens::OR)) {
         Value v2 = this->pl_2();
-        return Value(static_cast<long>(v1 || v2));
+        return Value(v1 || v2);
     } else if (this->match_if_is(Tokens::XOR)) {
-        Value v2 = this->pl_2();
-        return Value(static_cast<long>(!v1 != !v2));
+        Value v2 = !this->pl_2();
+        Value not_v1 = !v1; // make g++ happy, avoids -Werror=logical-not-parentheses
+        return Value(not_v1 != v2);
     } else {
         return v1;
     }
@@ -88,7 +89,7 @@ Value TibParser::pl_3(){
 
     if (this->match_if_is(Tokens::AND)) {
         Value v2 = this->pl_3();
-        return Value(static_cast<long>(v1 && v2));
+        return Value(v1 && v2);
     } else {
         return v1;
     }
@@ -98,7 +99,7 @@ Value TibParser::pl_4(){
     if (this->match_if_is(Tokens::NOT)) {
         Value v1 = this->pl_2();
         this->match_if_is(Tokens::R_PAREN);
-        return Value(static_cast<long>(!v1));
+        return Value(!v1);
     } else {
         return this->pl_5();
     }
@@ -275,32 +276,35 @@ Value TibParser::pl_14() {
         return val;
     }
     else {
-        this->error("Oops: This token is not implemented, try again later.");
+        this->error("Unexpected token!");
         return Value(-1.0);
     }
     
 }
 
+bool eol_token(Token& token) {
+    return token.type == Tokens::EOL || token.type == Tokens::EOF_ || token.type == Tokens::COLON;
+}
+
+
 void TibParser::statement() {
-    // For now, just call result since it's the only option
-    // Set to ans?
-    if (this->token == Tokens::EOL)
-        return;
-    Value result = this->pl_1();
-    std::cout << result.to_str();
-    std::cout << std::endl;
+    while (!eol_token(this->token)) {
+        this->vars.ans = this->pl_1();
+        std::cout << this->vars.ans.to_str();
+        std::cout << std::endl;
+    }
+    this->match_if_is(Tokens::COLON);
+    this->match_if_is(Tokens::EOL);
+    return;
 }
 
 void TibParser::tib_program() {
-    if (this->token == Tokens::EOF_) {
-        this->match(Tokens::EOF_);
-    } else {
+
+    while (this->token.type != Tokens::EOF_) {
         this->statement();
-        if (this->token == Tokens::EOF_)
-            return;
-        this->match(Tokens::EOL);
-        this->tib_program();
     }
+
+    this->match(Tokens::EOF_);
 }
 
 bool TibParser::parse() {

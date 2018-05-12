@@ -117,21 +117,11 @@ public:
 
     double get_float() const;
 
-    explicit operator bool() const {
-        switch(type) {
-            case ValueTypes::STRING:
-                return this->s_val.length();
-            case ValueTypes::INT:
-                return this->i_val;
-            case ValueTypes::FLOAT:
-                return this->f_val;
-            case ValueTypes::LIST:
-                return this->list.size();
-            default:
-                return false;
-        }
-    };
-    Value operator-();
+    Value operator||(const Value& rhs);
+    Value operator&&(const Value& rhs);
+    Value operator!();
+    Value operator-(); // negation
+
     Value operator-(const Value& rhs);
     Value operator+(const Value& rhs);
     Value operator*(const Value& rhs);

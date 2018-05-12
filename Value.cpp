@@ -44,6 +44,13 @@ Value Value::operator-() {
             return Value(-this->f_val);
         case ValueTypes::STRING:
             throw "ERR:DATA TYPE\nAttempted to negate string.";
+        case ValueTypes::LIST: {
+            Value val2(this->list);
+            for (auto& val : val2.list) {
+                val = -val;
+            }
+            return val2;
+        }
         default:
             throw "ERR:DATA TYPE";
     }
@@ -98,8 +105,31 @@ Value Value::operator<=(const Value& rhs){
 Value Value::operator>=(const Value& rhs){
     return this->generic_compare(rhs, std::greater_equal<double>());
 };
-
-
+Value Value::operator||(const Value& rhs) {
+    return this->generic_compare(rhs, std::logical_or<double>());        
+};
+Value Value::operator&&(const Value& rhs){
+    return this->generic_compare(rhs, std::logical_and<double>());        
+};
+Value Value::operator!(){
+    switch (this->type) {
+        case ValueTypes::FLOAT:
+            return Value(static_cast<long>(!this->f_val));
+        case ValueTypes::INT:
+            return Value(static_cast<long>(!this->i_val));
+        case ValueTypes::STRING:
+            return Value(static_cast<long>(!this->s_val.length()));
+        case ValueTypes::LIST: {
+            Value val2(this->list);
+            for (auto val : val2.list) {
+                val = !val;
+            }
+            return val2;
+        }
+        default:
+            throw "This type cannot be negated!";
+    }
+};
 Value Value::exp(const Value& exp) {
     Value val;
     switch(this->type) {
