@@ -27,6 +27,7 @@ char TokenNames[NumTokens][24] = {
     "POW",
     "VARIABLE",
     "STORE",
+    "COLON",
     "EOL",
     "EOF",
     "UNDEFINED"
@@ -57,9 +58,10 @@ std::set<std::string> get_token_set() {
 const std::string Token::to_str() {
     std::stringstream ss;
     std::string value = this->value;
-    if (value == "\n")
-        value = "\\n";
+    if (value == "\n") {
+        value = "/n"; // use backwards slash so that the testrunner doesn't turn it into an actual carriage return
+    }
 
-    ss << TokenNames[this->type] << "/" << TClassNames[this->clss] << " with value " << "\"" << value << "\" on line " << this->line_number;
+    ss << TokenNames[this->type] << "/" << TClassNames[this->clss] << " with value \"" << value << "\" on line " << this->line_number;
     return ss.str();
 }

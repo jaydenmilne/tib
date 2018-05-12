@@ -31,6 +31,7 @@ typedef enum tokens {
     POW,
     VAR,
     STO,
+    COLON,
     EOL,
     EOF_,
     UNDEFINED

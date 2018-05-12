@@ -97,6 +97,9 @@ void TibScanner::parse_char_operator(char ch) {
         case '=':
             this->add_token(tokens::EQUAL, TClass::OPERATOR, str);
             break;
+        case ':':
+            this->add_token(Tokens::COLON, TClass::KEYWORD, str);
+            break;
         case '-':
             if (this->in_reader.input.peek() != '>') {
                 this->add_token(Tokens::MINUS, TClass::OPERATOR, str);
