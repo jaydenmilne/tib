@@ -58,6 +58,17 @@ void TibParser::write_out_string(std::string str) {
 
 }
 
+Value TibParser::pl_1() {
+    Value val = this->pl_2();
+    if (this->match_if_is(Tokens::STO)) {
+        this->vars.set(this->token.value, val);
+        this->match(Tokens::VAR);
+        return val;
+    } else {
+        return val;
+    }
+}
+
 Value TibParser::pl_2(){
     Value v1 = this->pl_3();
 
@@ -275,7 +286,7 @@ void TibParser::statement() {
     // Set to ans?
     if (this->token == Tokens::EOL)
         return;
-    Value result = this->pl_2();
+    Value result = this->pl_1();
     std::cout << result.to_str();
     std::cout << std::endl;
 }

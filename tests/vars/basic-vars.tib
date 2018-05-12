@@ -1,2 +1,10 @@
 X
-1 + X
+1 -> X
+X
+1 + X -> X
+
+"burrito" -> Y
+1.49323 -> Z
+Z + X -> P
+
+Y = "burrito"

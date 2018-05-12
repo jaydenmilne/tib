@@ -5,7 +5,8 @@ Based off [this table](http://tibasicdev.wikidot.com/68k:order-of-operations)
 | Non Terminal  | -> | Rule          | Rule          | Rule          | Rule          |
 |---------------|----|---------------|---------------|---------------|---------------|
 | P[rogram]     | -> | S '\n' P      | 'EOF'
-| S[tatement]   | -> | PL6           | (Disp, etc)*  | EOF
+| S[tatement]   | -> | PL1           | EOF
+| PL1           | -> | # -> rvar     | PL2
 | PL2           | -> | # or $        | # xor $       | #
 | PL3           | -> | # and $       | #
 | PL4           | -> | not(PL2)      | not(PL2'EOL'  | #
