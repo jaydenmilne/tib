@@ -21,7 +21,7 @@ void print_help() {
 }
 
 void print_about() {
-    cout << "tib ([t]ib [i]s not TI-[B]asic) v0.0.0.0 \"Super Beta Version\"" << endl <<
+    cout << "tib ([t]ib [i]s not TI-[B]asic) v0.0.1 \"Super Beta Version\"" << endl <<
             "(c) 2018 Jayden Milne, All Rights Reserved" << endl <<
             "This program is distributed as free software" << endl <<
             "Remember kids - drink lots of milk!" << endl;
