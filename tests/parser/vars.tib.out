@@ -1,35 +1,35 @@
-EOL/KEYWORD with value "\n" on line 1
-REAL VARIABLE/VALUE with value "A" on line 2
-REAL VARIABLE/VALUE with value "B" on line 2
-REAL VARIABLE/VALUE with value "C" on line 2
-REAL VARIABLE/VALUE with value "D" on line 2
-REAL VARIABLE/VALUE with value "E" on line 2
-REAL VARIABLE/VALUE with value "F" on line 2
-REAL VARIABLE/VALUE with value "G" on line 2
-REAL VARIABLE/VALUE with value "H" on line 2
-REAL VARIABLE/VALUE with value "I" on line 2
-REAL VARIABLE/VALUE with value "J" on line 2
-REAL VARIABLE/VALUE with value "K" on line 2
-REAL VARIABLE/VALUE with value "L" on line 2
-REAL VARIABLE/VALUE with value "M" on line 2
-REAL VARIABLE/VALUE with value "N" on line 2
-REAL VARIABLE/VALUE with value "O" on line 2
-REAL VARIABLE/VALUE with value "P" on line 2
-REAL VARIABLE/VALUE with value "Q" on line 2
-REAL VARIABLE/VALUE with value "R" on line 2
-REAL VARIABLE/VALUE with value "S" on line 2
-REAL VARIABLE/VALUE with value "T" on line 2
-REAL VARIABLE/VALUE with value "U" on line 2
-REAL VARIABLE/VALUE with value "V" on line 2
-EOL/KEYWORD with value "\n" on line 2
-REAL VARIABLE/VALUE with value "A" on line 3
-EOL/KEYWORD with value "\n" on line 3
-REAL VARIABLE/VALUE with value "B" on line 4
-EOL/KEYWORD with value "\n" on line 4
-REAL VARIABLE/VALUE with value "X" on line 5
-EOL/KEYWORD with value "\n" on line 5
-REAL VARIABLE/VALUE with value "Y" on line 6
-EOL/KEYWORD with value "\n" on line 6
-REAL VARIABLE/VALUE with value "Z" on line 7
+EOL/KEYWORD with value "/n" on line 1
+VARIABLE/VALUE with value "A" on line 2
+VARIABLE/VALUE with value "B" on line 2
+VARIABLE/VALUE with value "C" on line 2
+VARIABLE/VALUE with value "D" on line 2
+VARIABLE/VALUE with value "E" on line 2
+VARIABLE/VALUE with value "F" on line 2
+VARIABLE/VALUE with value "G" on line 2
+VARIABLE/VALUE with value "H" on line 2
+VARIABLE/VALUE with value "I" on line 2
+VARIABLE/VALUE with value "J" on line 2
+VARIABLE/VALUE with value "K" on line 2
+VARIABLE/VALUE with value "L" on line 2
+VARIABLE/VALUE with value "M" on line 2
+VARIABLE/VALUE with value "N" on line 2
+VARIABLE/VALUE with value "O" on line 2
+VARIABLE/VALUE with value "P" on line 2
+VARIABLE/VALUE with value "Q" on line 2
+VARIABLE/VALUE with value "R" on line 2
+VARIABLE/VALUE with value "S" on line 2
+VARIABLE/VALUE with value "T" on line 2
+VARIABLE/VALUE with value "U" on line 2
+VARIABLE/VALUE with value "V" on line 2
+EOL/KEYWORD with value "/n" on line 2
+VARIABLE/VALUE with value "A" on line 3
+EOL/KEYWORD with value "/n" on line 3
+VARIABLE/VALUE with value "B" on line 4
+EOL/KEYWORD with value "/n" on line 4
+VARIABLE/VALUE with value "X" on line 5
+EOL/KEYWORD with value "/n" on line 5
+VARIABLE/VALUE with value "Y" on line 6
+EOL/KEYWORD with value "/n" on line 6
+VARIABLE/VALUE with value "Z" on line 7
 EOF/KEYWORD with value "" on line 7
 Total Tokens = 34

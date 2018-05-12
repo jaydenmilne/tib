@@ -1,0 +1,7 @@
+EOL/KEYWORD with value "/n" on line 1
+STRING/VALUE with value "Test string" on line 2
+EOL/KEYWORD with value "/n" on line 2
+STRING/VALUE with value "test string" on line 3
+EOL/KEYWORD with value "/n" on line 3
+EOF/KEYWORD with value "" on line 4
+Total Tokens = 6

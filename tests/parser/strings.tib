@@ -1,2 +1,3 @@
+#!args=--write-tokens
 "Test string"
 "test string

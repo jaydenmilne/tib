@@ -1,3 +1,4 @@
+#!args=--write-tokens
 oror
 andand
 xorand
