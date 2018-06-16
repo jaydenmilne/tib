@@ -1,0 +1,57 @@
+/* Definitions Section */
+
+%{
+#include "Token.h"
+%}
+
+%option noyywrap
+%option c++
+%option yylineno
+
+string  \"[^\n"]+\"
+ws      [ \t]+
+alpha   [A-Za-z]
+dig     [0-9]
+number  {dig}+(\.{dig}+)?
+comment #[^\n]*
+
+
+%% /* Rules Section */
+{ws}        /* skip whitespace */
+{string}    return Tokens::STRING;
+{number}    return Tokens::NUM;
+{comment}   /* skip comments */
+"\r\n"      return Tokens::EOL;
+"\n"        return Tokens::EOL;
+"+"         return Tokens::PLUS;
+"*"         return Tokens::TIMES;
+"/"         return Tokens::DIVIDE;
+"("         return Tokens::L_PAREN;
+")"         return Tokens::R_PAREN;
+"{"         return Tokens::L_CURLY;
+"}"         return Tokens::R_CURLY;
+","         return Tokens::COMMA;
+"^"         return Tokens::POW;
+"="         return Tokens::EQUAL;
+">"         return Tokens::GREATER;
+">="        return Tokens::GREQ;
+"<"         return Tokens::LESS;
+"<="        return Tokens::LESSEQ;
+"or"        return Tokens::OR;
+"and"       return Tokens::AND;
+"not"       return Tokens::NOT;
+"xor"       return Tokens::XOR;
+"!="        return Tokens::N_EQUAL;
+"Goto"      return Tokens::GOTO;
+"If"        return Tokens::IF;
+"Lbl"       return Tokens::LBL;
+"Disp"      return Tokens::DISP;
+":"         return Tokens::COLON;
+"-"         return Tokens::MINUS;
+"->"        return Tokens::STO;
+[A-Z]       return Tokens::VAR;
+.           return Tokens::UNDEFINED;
+<<EOF>>     return Tokens::EOF_;
+
+%%
+/* User Code Section */

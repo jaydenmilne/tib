@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Quick and dirty test runner for tib
 """

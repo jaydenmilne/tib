@@ -4,10 +4,18 @@
 
 #include <string>
 #include <sstream>
-#include <set>
 
+// Note: The following enum is sorted into the tree token_classes categories
+//       be sure to add new tokens to the correct category
 typedef enum tokens {
+    __CATEGORY_VALUES,
     NUM,
+    STRING,
+    VAR,
+    L_PAREN,
+    L_CURLY,
+
+    __CATEGORY_OPERATORS,
     PLUS,
     MINUS,
     TIMES,
@@ -22,39 +30,41 @@ typedef enum tokens {
     GREQ,
     LESS,
     LESSEQ,
-    L_PAREN,
     R_PAREN,
-    L_CURLY,
     R_CURLY,
     COMMA,
-    STRING,
     POW,
-    VAR,
+
+    __CATEGORY_KEYWORDS,
+    DISP,
+    LBL,
+    GOTO,
+    IF,
     STO,
     COLON,
     EOL,
     EOF_,
-    UNDEFINED
+    UNDEFINED,
+    __LAST // Last token, for size measurement purposes
 } Tokens;
 
 typedef enum token_classes {
     VALUE,       // Anything that has to do with getting a like constants / operators
-    UNSUSED,
     KEYWORD,     // Lbl Goto Disp etc (must go at beginning of line)
-    FUNCTION,    // Anything that takes paramaters & has parentheses sin() output()
     OPERATOR,
 } TClass;
 
 std::string token_name(Tokens token);
 
-std::set<std::string> get_token_set();
+TClass get_class(Tokens tok);
 
 class Token {
+    TClass get_class() const;
 public:
-    Token(unsigned int _ln, Tokens _tp, TClass clss_, std::string _val) : line_number(_ln), clss(clss_), type(_tp), value(_val) {};
+    Token(unsigned int _ln, Tokens _tp, std::string _val) : line_number(_ln), type(_tp), clss(get_class()),  value(_val) {};
     unsigned int line_number = 0;
+    Tokens type = Tokens::UNDEFINED;   
     TClass clss = TClass::VALUE;
-    Tokens type = Tokens::UNDEFINED;
     std::string value = "";
     const std::string to_str();
 
@@ -65,12 +75,6 @@ public:
     bool operator==(const Tokens &other) const {
         return this->type == other;
     }
-
-    /*
-    std::ostream& operator<< (std::ostream& stream, Token& obj) {
-        return stream << obj.toString();
-    }
-    */
 
 };
 

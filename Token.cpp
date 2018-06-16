@@ -1,9 +1,14 @@
 #include "Token.h"
 
-unsigned const int NumTokens = 40;
-
-char TokenNames[NumTokens][24] = {
+char TokenNames[Tokens::__LAST][25] = {
+    "__CATEGORY_VALUES",
     "NUM",
+    "STRING",
+    "VAR",
+    "L_PAREN",
+    "L_CURLY",
+
+    "__CATEGORY_OPERATORS",
     "PLUS",
     "MINUS",
     "TIMES",
@@ -18,41 +23,31 @@ char TokenNames[NumTokens][24] = {
     "GREQ",
     "LESS",
     "LESSEQ",
-    "LEFT PAREN",
-    "RIGHT PAREN",
-    "LEFT CURLY BRACE",
-    "RIGHT CURLY BRACE",
+    "R_PAREN",
+    "R_CURLY",
     "COMMA",
-    "STRING",
     "POW",
-    "VARIABLE",
-    "STORE",
+
+    "__CATEGORY_KEYWORDS",
+    "DISP",
+    "LBL",
+    "GOTO",
+    "IF",
+    "STO",
     "COLON",
     "EOL",
     "EOF",
     "UNDEFINED"
 };
 
-char TClassNames[5][9] = {
+char TClassNames[sizeof(TClass)][9] = {
     "VALUE",
-    "VAR",
     "KEYWORD",
-    "FUNCTION",
     "OPERATOR"
 };
 
 std::string token_name(Tokens token) {
     return TokenNames[token];
-}
-
-std::set<std::string> get_token_set() {
-    std::set<std::string> token_set;
-
-    for (unsigned int i = 0; i < NumTokens; i++) {
-        token_set.insert(TokenNames[i]);
-    }
-
-    return token_set;
 }
 
 const std::string Token::to_str() {
@@ -64,4 +59,14 @@ const std::string Token::to_str() {
 
     ss << TokenNames[this->type] << "/" << TClassNames[this->clss] << " with value \"" << value << "\" on line " << this->line_number;
     return ss.str();
+}
+
+TClass Token::get_class() const {
+    if (this->type < Tokens::__CATEGORY_OPERATORS) {
+        return TClass::VALUE;
+    } else if (this->type > Tokens::__CATEGORY_OPERATORS && this->type < Tokens::__CATEGORY_KEYWORDS) {
+        return TClass::OPERATOR;
+    } else {
+        return TClass::KEYWORD;
+    }
 }

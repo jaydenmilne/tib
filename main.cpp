@@ -82,7 +82,8 @@ int main(int argc, char*argv[]) {
 
     TibScanner scanner(config);
 
-    ReturnCode code = scanner.parse();
+    ReturnCode code = scanner.init();
+    code = scanner.read();
     if (code || config.write_tokens)
         return code;
 

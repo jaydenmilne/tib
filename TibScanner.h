@@ -4,34 +4,27 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #include <vector>
-#include <set>
 
 #include "config.h"
 #include "Token.h"
-#include "InputReader.h"
+#include "FlexLexer.h"
 
 class TibScanner {
-    void add_token(Tokens type, TClass clss, std::string value, unsigned int line_number);
-    void add_token(Tokens type, TClass clss, std::string value);
-    bool next(char desired);
-    void parse_number(char ch);
-    void parse_char_operator(char ch);
-    void parse_multi_char_operator(char ch);
-    void parse_comment(char ch);
-    void parse_string(char ch);
-
+    std::ifstream input;
+    yyFlexLexer* lexer = nullptr;
+    
 public:
-    std::vector<Token> parsed_tokens;
     Config& config;
-    InputReader in_reader;
+    Token get_token();
+    ReturnCode init();
+    ReturnCode read();
 
-    TibScanner(Config& _config) : config(_config), in_reader(_config) {};
-
-    void output_tokens();
-
-    ReturnCode parse();
-
+    std::vector<Token> parsed_tokens;
+    
+    TibScanner(Config& _config) : config(_config) {};
+    ~TibScanner();
 };
 
 #endif
