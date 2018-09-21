@@ -29,7 +29,8 @@ The tib project's goals are
 Tib is a simple project, it is all self contained in one executable with no other dependencies (`tib.exe` on Windows, `tib` on UNIX-y systems). For Windows users, simply extract it to a folder and add it to your `%PATH%`. UNIX-y systems will likely have to do [something like this](https://stackoverflow.com/a/14638025).
 
 ### Where can I see what is supported?
-See syntax.md
+See grammar.md
+tib is in super-pre-alpha-beta, it's about 10% of the way there to version 1.0.0. Right now it is basically a glorified calculator
 
 ### Why doesn't tib support `ClrHome`, `Pause`, or `Output(`?
 In order to support these commands, tib will need to bring in some third party terminal library, like Curses, to manipulate the terminal window more. Work needs to be done to identify one that is simple and cross platform. 
