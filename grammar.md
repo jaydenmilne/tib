@@ -25,6 +25,7 @@ $ = recursion
 
 ## TI-84 Priority Levels
 (Highest number = highest priority)
+
 | Level | Operations
 |-------|-----------
 |  14   | Values and their equivalents (variables and constants)
