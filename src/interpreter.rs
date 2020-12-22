@@ -1,6 +1,8 @@
 use std::io;
 use std::io::Write;
 
+use crate::lexer;
+
 fn getline() -> String {
     let mut guess= String::new();
     print!(":");
@@ -12,18 +14,18 @@ fn getline() -> String {
     guess
 }
 
-fn interpret(repl: bool, file: &String) {
+fn interpret(repl: bool, input_file: &String) {
 
+    let mut input = input_file.clone();
     // some "unparsed tokens" data structure here
     loop {
         // get text
-        let input = if repl {
-            getline();
-        } else {
-            file;
-        };
+        if repl {
+            input = getline();
+        } 
 
         // lex the input
+        lexer::lex(&input);
         // parse the line. If we can't parse, add to the "unparsed tokens" and continue
         //                 If we can parse, generate the AST and continue
         // calculate the AST
