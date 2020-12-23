@@ -25,7 +25,7 @@ fn interpret(repl: bool, input_file: &String) {
         } 
 
         // lex the input
-        lexer::lex(&input);
+        let tokens = lexer::lex(&input);
         // parse the line. If we can't parse, add to the "unparsed tokens" and continue
         //                 If we can parse, generate the AST and continue
         // calculate the AST
