@@ -42,6 +42,7 @@ pub fn lex(input: &String) -> Vec<Token> {
     for (token, span) in lex.spanned() {
         if token == Token::UnknownToken {
             // todo: better error handling (this function should return Result, etc)
+            // todo: store the line number in the EndofLine token
             panic!("Failed to parse token `{}`", &input[span]);
         }
 
