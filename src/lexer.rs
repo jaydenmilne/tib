@@ -8,25 +8,49 @@ fn number(lex: &mut Lexer<Token>) -> Option<f64> {
     Some(num)
 }
 
-#[derive(Logos, Debug, PartialEq)]
+#[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Token {
 
     #[regex("[0-9]*[.]?[0-9]*", number)]
     Number(f64),
-
+    #[token("or")]
+    Or,
+    #[token("xor")]
+    Xor,
+    #[token("and")]
+    And,
+    #[token("not(")]
+    Not,
+    #[token(")")]
+    Rparen,
+    #[token("=")]
+    Equal,
+    #[token("!=")]
+    NotEqual,
+    #[token(">")]
+    Greater,
+    #[token(">=")]
+    GreaterEqual,
+    #[token("<")]
+    Less,
+    #[token("<=")]
+    LessEqual,
     #[token("+")]
     Plus,
     #[token("-")]
     Minus,
     #[token("*")]
-    Times,
+    Mult,
     #[token("/")]
     Divide,
+    #[token("^")]
+    Power,
 
     #[token("\r\n")]
     #[token("\n")]
     #[token(":")]
     EndOfLine,
+    EndOfInput,
 
     #[error]
     #[regex(r"[ \t\n\f]+", logos::skip)]  // todo: might need to refine this for strings?
@@ -48,6 +72,7 @@ pub fn lex(input: &String) -> Vec<Token> {
 
         all.push(token);
     }
+    all.push(Token::EndOfInput);
     all
 }
 
@@ -60,28 +85,52 @@ mod tests {
     use super::*;
     #[test]
     fn test_ints() {
-        assert_eq!(lex_str("1"), [(Token::Number(1.0), 0..1)]);
-        assert_eq!(lex_str("12345"), [(Token::Number(12345.0), 0..5)]);
-        assert_eq!(lex_str("0123456"), [(Token::Number(123456.0), 0..7)]);
-        assert_eq!(lex_str("     12 34"), [(Token::Number(12.0), 5..7), (Token::Number(34.0), 8..10)])
+        assert_eq!(lex_str("1"), [Token::Number(1.0), Token::EndOfInput]);
+        assert_eq!(lex_str("12345"), [Token::Number(12345.0), Token::EndOfInput]);
+        assert_eq!(lex_str("0123456"), [Token::Number(123456.0), Token::EndOfInput]);
+        assert_eq!(lex_str("     12 34"), [Token::Number(12.0), Token::Number(34.0), Token::EndOfInput])
     }
 
     #[test]
     fn test_floats() {
-        assert_eq!(lex_str("1.4"), [(Token::Number(1.4), 0..3)]);
-        assert_eq!(lex_str(".4"), [(Token::Number(0.4), 0..2)]);
-        assert_eq!(lex_str("1."), [(Token::Number(1.0), 0..2)]);
-        assert_eq!(lex_str("\t1.0 0.4"), [(Token::Number(1.0), 1..4), (Token::Number(0.4), 5..8)]);
+        assert_eq!(lex_str("1.4"), [Token::Number(1.4), Token::EndOfInput]);
+        assert_eq!(lex_str(".4"), [Token::Number(0.4), Token::EndOfInput]);
+        assert_eq!(lex_str("1."), [Token::Number(1.0), Token::EndOfInput]);
+        assert_eq!(lex_str("\t1.0 0.4"), [Token::Number(1.0), Token::Number(0.4), Token::EndOfInput]);
 
         // this case fails on the calculator, but I think it should be a parsing error
         // not a lexing error
-        assert_eq!(lex_str("1.0.1"), [(Token::Number(1.0), 0..3),(Token::Number(0.1), 3..5)]);
+        assert_eq!(lex_str("1.0.1"), [Token::Number(1.0),Token::Number(0.1), Token::EndOfInput]);
     }
 
     #[test]
     fn test_binary_ops() {
-        assert_eq!(lex_str("+-*/"), [(Token::Plus, 0..1), (Token::Minus, 1..2), (Token::Times, 2..3), (Token::Divide, 3..4)]);
-        assert_eq!(lex_str("4+4"), [(Token::Number(4.0), 0..1), (Token::Plus, 1..2), (Token::Number(4.0), 2..3)]);
+        assert_eq!(lex_str("4+4"), [Token::Number(4.0), Token::Plus, Token::Number(4.0), Token::EndOfInput]);
+        assert_eq!(lex_str("-"), [Token::Minus, Token::EndOfInput]);
+        assert_eq!(lex_str("/"), [Token::Divide, Token::EndOfInput]);
+        assert_eq!(lex_str("*"), [Token::Mult, Token::EndOfInput]);
+    }
+
+
+    #[test]
+    fn test_logical_operators() {
+        assert_eq!(lex_str("xor"), [Token::Xor, Token::EndOfInput]);
+        assert_eq!(lex_str("or"), [Token::Or, Token::EndOfInput]);
+        assert_eq!(lex_str("orxor"), [Token::Or, Token::Xor, Token::EndOfInput]);
+        assert_eq!(lex_str("and"), [Token::And, Token::EndOfInput]);
+        assert_eq!(lex_str("not("), [Token::Not, Token::EndOfInput]);
+        assert_eq!(lex_str(")"), [Token::Rparen, Token::EndOfInput]);
+        assert_eq!(lex_str("*"), [Token::Mult, Token::EndOfInput]);
+    }
+
+    #[test]
+    fn test_equality_comparison() {
+        assert_eq!(lex_str("<"), [Token::Less, Token::EndOfInput]);
+        assert_eq!(lex_str("<="), [Token::LessEqual, Token::EndOfInput]);
+        assert_eq!(lex_str(">"), [Token::Greater, Token::EndOfInput]);
+        assert_eq!(lex_str(">="), [Token::GreaterEqual, Token::EndOfInput]);
+        assert_eq!(lex_str("="), [Token::Equal, Token::EndOfInput]);
+        assert_eq!(lex_str("<<=>>=="), [Token::Less, Token::LessEqual, Token::Greater, Token::GreaterEqual, Token::Equal, Token::EndOfInput])
     }
 
     #[test]
