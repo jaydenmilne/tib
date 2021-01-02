@@ -1,5 +1,5 @@
-use crate::lexer::Token;
 use crate::executor::*;
+use crate::lexer::Token;
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -12,7 +12,7 @@ impl Value {
     pub fn bool(b: bool) -> Value {
         Value::NumValue(match b {
             true => 1.0,
-            false =>  0.0
+            false => 0.0,
         })
     }
 }
@@ -20,15 +20,11 @@ impl Value {
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match self {
-            Value::NumValue(n1) => {
-                match other {
-                    Value::NumValue(n2) => {
-                        n1 == n2
-                    }, 
-                    _ => panic!("Not implemented!")
-                }
+            Value::NumValue(n1) => match other {
+                Value::NumValue(n2) => n1 == n2,
+                _ => panic!("Not implemented!"),
             },
-            _ => panic!("Not implemented!")
+            _ => panic!("Not implemented!"),
         }
     }
 }
@@ -37,7 +33,7 @@ impl PartialEq<bool> for Value {
     fn eq(&self, other: &bool) -> bool {
         match self {
             Value::NumValue(n) => (n == &1.0) == *other,
-            _ => panic!("Not implemented!")
+            _ => panic!("Not implemented!"),
         }
     }
 }
@@ -46,7 +42,7 @@ impl PartialEq<f64> for Value {
     fn eq(&self, other: &f64) -> bool {
         match self {
             Value::NumValue(n) => n == other,
-            _ => panic!("Not implemented!")
+            _ => panic!("Not implemented!"),
         }
     }
 }
@@ -65,33 +61,42 @@ impl Eval for Value {
 }
 
 #[derive(Debug)]
-pub struct Expression {
-    val : Box<dyn Eval>,
-}
-
-#[derive(Debug)]
-pub struct Keyword {
+pub struct Command {
     // todo (this will be for things like if statements, etc)
 }
 
 #[derive(Debug)]
 pub enum Statement {
-    Expr(Box<dyn Eval>),
-    Keywrd(Keyword)
+    Expression(Box<dyn Eval>),
+    Command(Command),
+}
+
+#[derive(Debug)]
+pub struct Block {
+    pub statements: Vec<Statement>,
+    pub pc: usize,
+}
+
+impl Block {
+    pub fn new() -> Block {
+        Block {
+            statements: Vec::new(),
+            pc: 0,
+        }
+    }
 }
 
 struct Parser<'a> {
-    tokens : &'a Vec<Token>,
-    prog : &'a mut Program,
+    tokens: &'a Vec<Token>,
+    prog: &'a mut Program,
     i: usize,
 }
 
 type PlRes = Result<Box<dyn Eval>, ParserError>;
 
 impl<'a> Parser<'a> {
-
     fn token(&self) -> &Token {
-        return &self.tokens[self.i]
+        return &self.tokens[self.i];
     }
 
     fn advance(&mut self) {
@@ -101,7 +106,7 @@ impl<'a> Parser<'a> {
         self.i += 1;
     }
 
-    fn match_if_is(&mut self, token : Token) -> bool {
+    fn match_if_is(&mut self, token: Token) -> bool {
         // if the current token is token, match
         if self.tokens[self.i] == token {
             self.advance();
@@ -132,16 +137,10 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::Or) {
             let v2 = self.pl_2()?;
-            Ok(Box::new(Or {
-                lhs: v1,
-                rhs: v2
-            }))
+            Ok(Box::new(Or { lhs: v1, rhs: v2 }))
         } else if self.match_if_is(Token::Xor) {
             let v2 = self.pl_2()?;
-            Ok(Box::new(Xor {
-                lhs: v1,
-                rhs: v2
-            }))
+            Ok(Box::new(Xor { lhs: v1, rhs: v2 }))
         } else {
             Ok(v1)
         }
@@ -152,10 +151,7 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::And) {
             let v2 = self.pl_3()?;
-            Ok(Box::new(And{
-                lhs: v1,
-                rhs: v2
-            }))
+            Ok(Box::new(And { lhs: v1, rhs: v2 }))
         } else {
             Ok(v1)
         }
@@ -166,9 +162,7 @@ impl<'a> Parser<'a> {
             let val = self.pl_2()?; // todo: should this be "expression" or something?
             self.match_if_is(Token::Rparen);
             self.match_if_is(Token::EndOfLine);
-            Ok(Box::new(Not {
-                val
-            }))
+            Ok(Box::new(Not { val }))
         } else {
             Ok(self.pl_5()?)
         }
@@ -179,22 +173,22 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::Equal) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(Equal{rhs, lhs}))
+            Ok(Box::new(Equal { rhs, lhs }))
         } else if self.match_if_is(Token::NotEqual) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(NotEqual{lhs, rhs}))
+            Ok(Box::new(NotEqual { lhs, rhs }))
         } else if self.match_if_is(Token::Greater) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(Greater{rhs, lhs}))
+            Ok(Box::new(Greater { rhs, lhs }))
         } else if self.match_if_is(Token::GreaterEqual) {
-            let lhs= self.pl_5()?;
-            Ok(Box::new(GreaterEqual{rhs, lhs}))
+            let lhs = self.pl_5()?;
+            Ok(Box::new(GreaterEqual { rhs, lhs }))
         } else if self.match_if_is(Token::Less) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(Less{rhs, lhs}))
+            Ok(Box::new(Less { rhs, lhs }))
         } else if self.match_if_is(Token::LessEqual) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(LessEqual{rhs, lhs}))
+            Ok(Box::new(LessEqual { rhs, lhs }))
         } else {
             Ok(rhs)
         }
@@ -205,10 +199,10 @@ impl<'a> Parser<'a> {
         let lhs = self.pl_7()?;
         if self.match_if_is(Token::Plus) {
             let rhs = self.pl_6()?;
-            Ok(Box::new(Add{lhs, rhs}))
+            Ok(Box::new(Add { lhs, rhs }))
         } else if self.match_if_is(Token::Minus) {
             let rhs = self.pl_6()?;
-            Ok(Box::new(Minus{lhs, rhs}))
+            Ok(Box::new(Minus { lhs, rhs }))
         } else {
             Ok(lhs)
         }
@@ -219,12 +213,12 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::Mult) {
             let rhs = self.pl_7()?;
-            Ok(Box::new(Mult{lhs, rhs}))
+            Ok(Box::new(Mult { lhs, rhs }))
         } else if self.match_if_is(Token::Divide) {
             let rhs = self.pl_7()?;
-            Ok(Box::new(Divide{lhs, rhs}))
-            
-            // TODO: Adjacent Multiplication Here??
+            Ok(Box::new(Divide { lhs, rhs }))
+
+        // TODO: Adjacent Multiplication Here??
         } else {
             Ok(lhs)
         }
@@ -232,14 +226,14 @@ impl<'a> Parser<'a> {
 
     fn pl_8(&mut self) -> PlRes {
         // this priority level is for string concatenation, which is tricky since
-        // we are just using the plus node at pl6 to do this. 
+        // we are just using the plus node at pl6 to do this.
         Ok(self.pl_9())?
     }
 
     fn pl_9(&mut self) -> PlRes {
         if self.match_if_is(Token::Minus) {
             let val = self.pl_9()?;
-            Ok(Box::new(Negate{val}))
+            Ok(Box::new(Negate { val }))
         } else {
             Ok(self.pl_10()?)
         }
@@ -250,7 +244,7 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::Power) {
             let rhs = self.pl_10()?;
-            Ok(Box::new(Power{lhs, rhs}))
+            Ok(Box::new(Power { lhs, rhs }))
         } else {
             Ok(lhs)
         }
@@ -262,22 +256,21 @@ impl<'a> Parser<'a> {
             Token::Number(n) => {
                 self.advance();
                 return Ok(Box::new(Value::NumValue(n)));
-            },
+            }
             _ => Err(ParserError::NotYetImplemented),
         }
     }
 
-    fn statement(&mut self) -> Result<Statement, ParserError> {
-        let stat = Statement::Expr(self.pl_1()?);
+    fn expression(&mut self) -> Result<Statement, ParserError> {
+        let stat = Statement::Expression(self.pl_1()?);
         self.match_if_is(Token::EndOfLine);
         return Ok(stat);
     }
 
     fn tib_program(&mut self) -> Result<(), ParserError> {
-
         while self.more_tokens() {
-            let statement = self.statement()?;
-            self.prog.statements.push(statement);
+            let expr = self.expression()?;
+            self.prog.prog.statements.push(expr);
         }
 
         Ok(())
@@ -291,24 +284,22 @@ pub enum ParserError {
     MissingToken(Token),
     NotYetImplemented,
     // this one is special, the REPL will not print any errors on this
-    Incomplete 
+    Incomplete,
 }
 
-
-pub fn parse(tokens : &Vec<Token>, program : &mut Program) -> Result<(), ParserError> {
+pub fn parse(tokens: &Vec<Token>, program: &mut Program) -> Result<(), ParserError> {
     // Will modify program, that is this functions output
     // The basic idea of this function is that we parse tokens and add the resulting statements
-    // into program. If 
+    // into program. If
 
     let mut parser = Parser {
         tokens,
         prog: program,
-        i: 0
+        i: 0,
     };
-    
+
     parser.tib_program()
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -317,7 +308,6 @@ mod tests {
     #[test]
     fn test_simple_addition() {
         let mut program = Program::new();
-
 
         assert!(parse(&lex_str("2+2\n"), &mut program).is_ok());
         // todo: validate the statements in program

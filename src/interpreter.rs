@@ -1,12 +1,12 @@
 use std::io;
 use std::io::Write;
 
+use crate::executor;
 use crate::lexer;
 use crate::parser;
-use crate::executor;
 
 fn getline() -> String {
-    let mut guess= String::new();
+    let mut guess = String::new();
     print!(":");
     io::stdout().flush().unwrap();
     io::stdin()
@@ -17,7 +17,6 @@ fn getline() -> String {
 }
 
 fn interpret(repl: bool, input_file: &String) {
-
     let mut input = input_file.clone();
     let mut program = executor::Program::new();
 
@@ -26,7 +25,7 @@ fn interpret(repl: bool, input_file: &String) {
         // get text
         if repl {
             input = getline();
-        } 
+        }
 
         // lex the input
         let tokens = lexer::lex(&input);
@@ -49,7 +48,7 @@ fn interpret(repl: bool, input_file: &String) {
                 if repl {
                     println!("{:?}", program.val);
                 }
-            },
+            }
         };
 
         if !repl {
