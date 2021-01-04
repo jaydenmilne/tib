@@ -26,15 +26,27 @@ fn interpret(repl: bool, input_file: &String) {
         if repl {
             input = getline();
         }
-
+        let tokens : Vec<lexer::Token>;
         // lex the input
-        let tokens = lexer::lex(&input);
+        match lexer::lex(&input) {
+            Ok(tk) => {
+                tokens = tk;
+            },
+            Err(err) => {
+                println!("Lex Error {:?}", err);
+                continue;
+            }
+        }
 
+        
         println!("{:?}", tokens);
         // parse the line. If we can't parse, add to the "unparsed tokens" and continue
         //                 If we can parse, generate the AST and continue
         match parser::parse(&tokens, &mut program) {
-            Err(err) => println!("Parse Error {:?}", err),
+            Err(err) => {
+                println!("Parse Error {:?}", err);
+                continue;
+            }
             _ => (),
         };
 
@@ -46,7 +58,7 @@ fn interpret(repl: bool, input_file: &String) {
             Err(err) => println!("Exec Error {:?}", err),
             _ => {
                 if repl {
-                    println!("{:?}", program.val);
+                    println!("{:?}", program.ctx.ans);
                 }
             }
         };

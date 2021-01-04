@@ -8,6 +8,11 @@ fn number(lex: &mut Lexer<Token>) -> Option<f64> {
     Some(num)
 }
 
+#[derive(Debug)]
+pub enum LexError {
+    UnknownToken(String)
+}
+
 #[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Token {
     #[regex("[0-9]*[.]?[0-9]*", number)]
@@ -49,8 +54,18 @@ pub enum Token {
     // things after this are "keywords" that aren't eval'd, instead they are executed
     #[token("If")]
     If,
+    #[token("Then")]
+    Then,
     #[token("Else")]
     Else,
+    #[token("For(")]
+    For,
+    #[token("While")]
+    While,
+    #[token("Repeat")]
+    Repeat,
+    #[token("End")]
+    End,
     #[token("Disp")]
     Disp,
 
@@ -65,7 +80,7 @@ pub enum Token {
     UnknownToken,
 }
 
-pub fn lex(input: &String) -> Vec<Token> {
+pub fn lex(input: &String) -> Result<Vec<Token>, LexError> {
     // Do magic!
     let lex = Token::lexer(input);
     let mut all: Vec<Token> = Vec::new();
@@ -74,17 +89,18 @@ pub fn lex(input: &String) -> Vec<Token> {
         if token == Token::UnknownToken {
             // todo: better error handling (this function should return Result, etc)
             // todo: store the line number in the EndofLine token
-            panic!("Failed to parse token `{}`", &input[span]);
+            return Err(LexError::UnknownToken(String::from(&input[span])))
         }
 
         all.push(token);
     }
     all.push(Token::EndOfInput);
-    all
+    Ok(all)
 }
 
 pub fn lex_str(input: &str) -> Vec<Token> {
-    lex(&String::from(input))
+    // 
+    lex(&String::from(input)).unwrap()
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 use crate::executor::*;
+use crate::executor;
 use crate::lexer::Token;
 
 #[derive(Clone, Debug)]
@@ -58,32 +59,32 @@ impl Eval for Value {
             Value::StringValue(s) => write!(f, "{:?}", s),
         }
     }
+
+    fn clone_expr(&self) -> Box<dyn Eval> {
+        match self {
+            Value::NumValue(n) => Box::new(Value::NumValue(*n)),
+            Value::StringValue(s) => Box::new(Value::StringValue(s.clone())),
+
+        }
+    }
 }
 
-#[derive(Debug)]
-pub struct Command {
-    // todo (this will be for things like if statements, etc)
+#[derive(Debug, Clone)]
+pub enum Command {
+    If(If),
+    Then,
+    Else,
+    For,
+    While,
+    Repeat,
+    End,
+    Disp,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Expression(Box<dyn Eval>),
     Command(Command),
-}
-
-#[derive(Debug)]
-pub struct Block {
-    pub statements: Vec<Statement>,
-    pub pc: usize,
-}
-
-impl Block {
-    pub fn new() -> Block {
-        Block {
-            statements: Vec::new(),
-            pc: 0,
-        }
-    }
 }
 
 struct Parser<'a> {
@@ -133,27 +134,27 @@ impl<'a> Parser<'a> {
     }
 
     fn pl_2(&mut self) -> PlRes {
-        let v1 = self.pl_3()?;
+        let lhs = self.pl_3()?;
 
         if self.match_if_is(Token::Or) {
-            let v2 = self.pl_2()?;
-            Ok(Box::new(Or { lhs: v1, rhs: v2 }))
+            let rhs = self.pl_2()?;
+            Ok(Box::new(BinaryOp::or( lhs, rhs )))
         } else if self.match_if_is(Token::Xor) {
-            let v2 = self.pl_2()?;
-            Ok(Box::new(Xor { lhs: v1, rhs: v2 }))
+            let rhs = self.pl_2()?;
+            Ok(Box::new(BinaryOp::xor(lhs, rhs)))
         } else {
-            Ok(v1)
+            Ok(lhs)
         }
     }
 
     fn pl_3(&mut self) -> PlRes {
-        let v1 = self.pl_4()?;
+        let lhs = self.pl_4()?;
 
         if self.match_if_is(Token::And) {
-            let v2 = self.pl_3()?;
-            Ok(Box::new(And { lhs: v1, rhs: v2 }))
+            let rhs = self.pl_3()?;
+            Ok(Box::new(BinaryOp::and(lhs, rhs)))
         } else {
-            Ok(v1)
+            Ok(lhs)
         }
     }
 
@@ -173,22 +174,22 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::Equal) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(Equal { rhs, lhs }))
+            Ok(Box::new(BinaryOp::equal(lhs, rhs)))
         } else if self.match_if_is(Token::NotEqual) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(NotEqual { lhs, rhs }))
+            Ok(Box::new(BinaryOp::not_equal(lhs, rhs)))
         } else if self.match_if_is(Token::Greater) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(Greater { rhs, lhs }))
+            Ok(Box::new(BinaryOp::greater(lhs, rhs)))
         } else if self.match_if_is(Token::GreaterEqual) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(GreaterEqual { rhs, lhs }))
+            Ok(Box::new(BinaryOp::greater_equal(lhs, rhs)))
         } else if self.match_if_is(Token::Less) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(Less { rhs, lhs }))
+            Ok(Box::new(BinaryOp::less(lhs, rhs)))
         } else if self.match_if_is(Token::LessEqual) {
             let lhs = self.pl_5()?;
-            Ok(Box::new(LessEqual { rhs, lhs }))
+            Ok(Box::new(BinaryOp::less_equal(lhs, rhs)))
         } else {
             Ok(rhs)
         }
@@ -199,10 +200,10 @@ impl<'a> Parser<'a> {
         let lhs = self.pl_7()?;
         if self.match_if_is(Token::Plus) {
             let rhs = self.pl_6()?;
-            Ok(Box::new(Add { lhs, rhs }))
+            Ok(Box::new(BinaryOp::add(lhs, rhs)))
         } else if self.match_if_is(Token::Minus) {
             let rhs = self.pl_6()?;
-            Ok(Box::new(Minus { lhs, rhs }))
+            Ok(Box::new(BinaryOp::minus(lhs, rhs)))
         } else {
             Ok(lhs)
         }
@@ -213,10 +214,10 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::Mult) {
             let rhs = self.pl_7()?;
-            Ok(Box::new(Mult { lhs, rhs }))
+            Ok(Box::new(BinaryOp::mult(lhs, rhs)))
         } else if self.match_if_is(Token::Divide) {
             let rhs = self.pl_7()?;
-            Ok(Box::new(Divide { lhs, rhs }))
+            Ok(Box::new(BinaryOp::divide(lhs, rhs)))
 
         // TODO: Adjacent Multiplication Here??
         } else {
@@ -244,7 +245,7 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::Power) {
             let rhs = self.pl_10()?;
-            Ok(Box::new(Power { lhs, rhs }))
+            Ok(Box::new(BinaryOp::power(lhs, rhs)))
         } else {
             Ok(lhs)
         }
@@ -267,10 +268,51 @@ impl<'a> Parser<'a> {
         return Ok(stat);
     }
 
+    fn command(&mut self) -> Result<Statement, ParserError> {
+        if self.match_if_is(Token::If) {
+            let condition = self.pl_2()?;
+            self.match_token(Token::EndOfLine)?;
+            Ok(Statement::Command(Command::If(If{condition})))
+        } else if self.match_if_is(Token::Then) {
+            Ok(Statement::Command(Command::Then))
+        } else if self.match_if_is(Token::Else) {
+            Ok(Statement::Command(Command::Else))
+        } else if self.match_if_is(Token::End) {
+            Ok(Statement::Command(Command::End))
+        } else {
+            Err(ParserError::NotYetImplemented)
+        }
+    }
+
+    fn is_command(&mut self) -> bool {
+        // Check if the next statement is a command or an expression
+        match self.token() {
+            Token::If
+            | Token::Else
+            | Token::For
+            | Token::While
+            | Token::Repeat
+            | Token::End
+            | Token::Disp => true,
+            _ => false,
+        }
+    }
+
+    fn statement(&mut self) -> Result<Statement, ParserError> {
+        if self.is_command() {
+            self.command()
+        } else {
+            self.expression()
+        }
+    }
+
     fn tib_program(&mut self) -> Result<(), ParserError> {
         while self.more_tokens() {
-            let expr = self.expression()?;
-            self.prog.prog.statements.push(expr);
+            if self.token() == &Token::EndOfLine {
+                continue;
+            }
+            let state = self.statement()?;
+            self.prog.statements.push(state);
         }
 
         Ok(())
