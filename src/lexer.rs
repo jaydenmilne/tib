@@ -10,7 +10,7 @@ fn number(lex: &mut Lexer<Token>) -> Option<f64> {
 
 #[derive(Debug)]
 pub enum LexError {
-    UnknownToken(String)
+    UnknownToken(String),
 }
 
 #[derive(Logos, Debug, PartialEq, Clone)]
@@ -76,7 +76,7 @@ pub enum Token {
     EndOfInput,
 
     #[error]
-    #[regex(r"[ \t\n\f]+", logos::skip)] // todo: might need to refine this for strings?
+    #[regex(r"[ \t\f]+", logos::skip)] // todo: might need to refine this for strings?
     UnknownToken,
 }
 
@@ -89,7 +89,7 @@ pub fn lex(input: &String) -> Result<Vec<Token>, LexError> {
         if token == Token::UnknownToken {
             // todo: better error handling (this function should return Result, etc)
             // todo: store the line number in the EndofLine token
-            return Err(LexError::UnknownToken(String::from(&input[span])))
+            return Err(LexError::UnknownToken(String::from(&input[span])));
         }
 
         all.push(token);
@@ -99,7 +99,7 @@ pub fn lex(input: &String) -> Result<Vec<Token>, LexError> {
 }
 
 pub fn lex_str(input: &str) -> Vec<Token> {
-    // 
+    //
     lex(&String::from(input)).unwrap()
 }
 
@@ -189,8 +189,12 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to parse token `.`")]
     fn test_unkown_token() {
-        lex_str(".");
+        match lex(&String::from("burrito")) {
+            Ok(_) => panic!("Didn't fail!"),
+            Err(err) => match err {
+                LexError::UnknownToken(_) => return,
+            },
+        }
     }
 }

@@ -1,5 +1,4 @@
 use crate::executor::*;
-use crate::executor;
 use crate::lexer::Token;
 
 #[derive(Clone, Debug)]
@@ -64,7 +63,6 @@ impl Eval for Value {
         match self {
             Value::NumValue(n) => Box::new(Value::NumValue(*n)),
             Value::StringValue(s) => Box::new(Value::StringValue(s.clone())),
-
         }
     }
 }
@@ -74,11 +72,11 @@ pub enum Command {
     If(If),
     Then,
     Else,
-    For,
-    While,
-    Repeat,
+    For(i64),
+    While(i64),
+    Repeat(i64),
     End,
-    Disp,
+    Disp(ValRef),
 }
 
 #[derive(Debug, Clone)]
@@ -138,7 +136,7 @@ impl<'a> Parser<'a> {
 
         if self.match_if_is(Token::Or) {
             let rhs = self.pl_2()?;
-            Ok(Box::new(BinaryOp::or( lhs, rhs )))
+            Ok(Box::new(BinaryOp::or(lhs, rhs)))
         } else if self.match_if_is(Token::Xor) {
             let rhs = self.pl_2()?;
             Ok(Box::new(BinaryOp::xor(lhs, rhs)))
@@ -170,28 +168,28 @@ impl<'a> Parser<'a> {
     }
 
     fn pl_5(&mut self) -> PlRes {
-        let rhs = self.pl_6()?;
+        let lhs = self.pl_6()?;
 
         if self.match_if_is(Token::Equal) {
-            let lhs = self.pl_5()?;
+            let rhs = self.pl_5()?;
             Ok(Box::new(BinaryOp::equal(lhs, rhs)))
         } else if self.match_if_is(Token::NotEqual) {
-            let lhs = self.pl_5()?;
+            let rhs = self.pl_5()?;
             Ok(Box::new(BinaryOp::not_equal(lhs, rhs)))
         } else if self.match_if_is(Token::Greater) {
-            let lhs = self.pl_5()?;
+            let rhs = self.pl_5()?;
             Ok(Box::new(BinaryOp::greater(lhs, rhs)))
         } else if self.match_if_is(Token::GreaterEqual) {
-            let lhs = self.pl_5()?;
+            let rhs = self.pl_5()?;
             Ok(Box::new(BinaryOp::greater_equal(lhs, rhs)))
         } else if self.match_if_is(Token::Less) {
-            let lhs = self.pl_5()?;
+            let rhs = self.pl_5()?;
             Ok(Box::new(BinaryOp::less(lhs, rhs)))
         } else if self.match_if_is(Token::LessEqual) {
-            let lhs = self.pl_5()?;
+            let rhs = self.pl_5()?;
             Ok(Box::new(BinaryOp::less_equal(lhs, rhs)))
         } else {
-            Ok(rhs)
+            Ok(lhs)
         }
     }
 
@@ -272,13 +270,20 @@ impl<'a> Parser<'a> {
         if self.match_if_is(Token::If) {
             let condition = self.pl_2()?;
             self.match_token(Token::EndOfLine)?;
-            Ok(Statement::Command(Command::If(If{condition})))
+            Ok(Statement::Command(Command::If(If { condition })))
         } else if self.match_if_is(Token::Then) {
+            self.match_token(Token::EndOfLine)?;
             Ok(Statement::Command(Command::Then))
         } else if self.match_if_is(Token::Else) {
+            self.match_token(Token::EndOfLine)?;
             Ok(Statement::Command(Command::Else))
         } else if self.match_if_is(Token::End) {
+            self.match_token(Token::EndOfLine)?;
             Ok(Statement::Command(Command::End))
+        } else if self.match_if_is(Token::Disp) {
+            let val = self.pl_2()?;
+            self.match_token(Token::EndOfLine)?;
+            Ok(Statement::Command(Command::Disp(val)))
         } else {
             Err(ParserError::NotYetImplemented)
         }
@@ -293,6 +298,7 @@ impl<'a> Parser<'a> {
             | Token::While
             | Token::Repeat
             | Token::End
+            | Token::Then
             | Token::Disp => true,
             _ => false,
         }
@@ -309,6 +315,7 @@ impl<'a> Parser<'a> {
     fn tib_program(&mut self) -> Result<(), ParserError> {
         while self.more_tokens() {
             if self.token() == &Token::EndOfLine {
+                self.advance();
                 continue;
             }
             let state = self.statement()?;
@@ -321,12 +328,8 @@ impl<'a> Parser<'a> {
 
 #[derive(Debug)]
 pub enum ParserError {
-    MissingOperand,
-    IllegalSyntax,
     MissingToken(Token),
     NotYetImplemented,
-    // this one is special, the REPL will not print any errors on this
-    Incomplete,
 }
 
 pub fn parse(tokens: &Vec<Token>, program: &mut Program) -> Result<(), ParserError> {
