@@ -8,6 +8,17 @@ fn number(lex: &mut Lexer<Token>) -> Option<f64> {
     Some(num)
 }
 
+fn number_var(lex: &mut Lexer<Token>) -> Option<char> {
+    let slice = lex.slice();
+
+    // we only want to represent this as the single character, not the string
+    if slice == "Theta" {
+        Some('θ')
+    } else {
+        Some(slice.chars().nth(0)?)
+    }
+}
+
 #[derive(Debug)]
 pub enum LexError {
     UnknownToken(String),
@@ -49,6 +60,12 @@ pub enum Token {
     Divide,
     #[token("^")]
     Power,
+    #[token("->")]
+    Store,
+
+    #[token("Theta", number_var)]
+    #[regex(r"[A-Z|θ]", number_var)]
+    RealVar(char),
 
     // This is where I would bifrucate this enum into "statements" and "expressions"
     // things after this are "keywords" that aren't eval'd, instead they are executed

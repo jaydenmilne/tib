@@ -1,6 +1,8 @@
 use crate::parser::Statement;
 use crate::parser::*;
 use core::fmt::Debug;
+use rand::Rng;
+use std::collections::HashMap;
 
 use crate::lexer::Token;
 
@@ -20,6 +22,7 @@ pub enum ExecError {
 #[derive(Debug)]
 pub struct Context {
     pub ans: Value,
+    pub reals: HashMap<char, Value>,
     // rest of the variables/state will go here
 }
 
@@ -39,6 +42,7 @@ impl Context {
         // uninitialized variables
         Context {
             ans: Value::NumValue(0.0),
+            reals: HashMap::new(),
         }
     }
 }
@@ -182,7 +186,7 @@ impl Program {
             // wart of me battling the borrow checker VVV
             match self.next_statement()?.clone() {
                 Statement::Expression(expr) => {
-                    self.ctx.ans = expr.eval()?;
+                    self.ctx.ans = expr.eval(&mut self.ctx)?;
                 }
                 Statement::Command(statement) => match statement {
                     Command::If(cmd) => self.exec_if(&cmd)?,
@@ -210,7 +214,7 @@ impl Program {
     }
 
     fn exec_if(&mut self, cmd: &If) -> Result<(), ExecError> {
-        let result = cmd.condition.eval()?;
+        let result = cmd.condition.eval(&mut self.ctx)?;
 
         if result == true {
             if self.next_then()? {
@@ -265,7 +269,7 @@ impl Program {
     }
 
     fn exec_disp(&mut self, val: ValRef) -> Result<(), ExecError> {
-        let result = val.eval()?;
+        let result = val.eval(&mut self.ctx)?;
         println!("{:?}", result);
         Ok(())
     }
@@ -274,7 +278,7 @@ impl Program {
 pub type EvalResult = Result<Value, ExecError>;
 
 pub trait Eval {
-    fn eval(&self) -> EvalResult;
+    fn eval(&self, ctx: &mut Context) -> EvalResult;
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result;
     fn clone_expr(&self) -> Box<dyn Eval>;
 }
@@ -303,6 +307,67 @@ pub struct Or {
     pub rhs: ValRef,
 }
 
+pub struct StoreNode {
+    pub val: ValRef,
+    pub var: Variable,
+}
+
+impl Eval for StoreNode {
+    fn eval(&self, ctx: &mut Context) -> EvalResult {
+        let val = self.val.eval(ctx)?;
+        match self.var {
+            Variable::RealVar(name) => {
+                ctx.reals.insert(name, val.clone());
+                Ok(val)
+            }
+        }
+    }
+
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Store({:?}->{:?})", self.val, self.var)
+    }
+
+    fn clone_expr(&self) -> Box<dyn Eval> {
+        Box::new(StoreNode {
+            var: self.var.clone(),
+            val: self.val.clone()
+        })
+    }
+}
+
+pub struct VarRef {
+    pub var: Variable,
+}
+
+impl Eval for VarRef {
+    fn eval(&self, ctx: &mut Context) -> EvalResult {
+        match self.var {
+            Variable::RealVar(name) => {
+                // check if is in hashmap
+                match ctx.reals.get(&name) {
+                    Some(val) => Ok(val.clone()),
+                    // tried to access an uninitialized variable! Punish them for their
+                    // insolence
+                    None => {
+                        let mut rng = rand::thread_rng();
+                        Ok(Value::NumValue(rng.gen_range(-10e20..10e20)))
+                    }
+                }
+            }
+        }
+    }
+
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Var({:?})", self.var)
+    }
+
+    fn clone_expr(&self) -> Box<dyn Eval> {
+        Box::new(VarRef {
+            var: self.var.clone(),
+        })
+    }
+}
+
 pub struct BinaryOp {
     pub lhs: ValRef,
     pub rhs: ValRef,
@@ -311,9 +376,9 @@ pub struct BinaryOp {
 }
 
 impl Eval for BinaryOp {
-    fn eval(&self) -> EvalResult {
-        let vleft = self.lhs.eval()?;
-        let vright = self.rhs.eval()?;
+    fn eval(&self, ctx: &mut Context) -> EvalResult {
+        let vleft = self.lhs.eval(ctx)?;
+        let vright = self.rhs.eval(ctx)?;
 
         match vleft {
             Value::NumValue(nl) => match vright {
@@ -535,8 +600,8 @@ pub struct Not {
 }
 
 impl Eval for Not {
-    fn eval(&self) -> EvalResult {
-        let val = self.val.eval()?;
+    fn eval(&self, ctx: &mut Context) -> EvalResult {
+        let val = self.val.eval(ctx)?;
 
         match val {
             Value::NumValue(n) => return Ok(Value::bool(!fb(n))),
@@ -559,8 +624,8 @@ pub struct Negate {
 }
 
 impl Eval for Negate {
-    fn eval(&self) -> EvalResult {
-        let val = self.val.eval()?;
+    fn eval(&self, ctx: &mut Context) -> EvalResult {
+        let val = self.val.eval(ctx)?;
 
         match val {
             Value::NumValue(n) => return Ok(Value::NumValue(-1.0 * n)),
@@ -588,9 +653,9 @@ mod tests {
     use super::*;
     use crate::lexer::*;
 
-    fn exec(input: &str) -> Value {
+    fn exec_str(input: String) -> Value {
         let mut program = Program::new();
-        match parse(&lex_str(input), &mut program) {
+        match parse(&lex_str(&input), &mut program) {
             Result::Ok(_) => (),
             Result::Err(err) => panic!("{:?} oops", err),
         }
@@ -604,6 +669,10 @@ mod tests {
         }
 
         return program.ctx.ans;
+    }
+
+    fn exec(input: &str) -> Value {
+        exec_str(String::from(input))
     }
     #[test]
     fn test_binary_ops_numbers() {
@@ -943,5 +1012,70 @@ mod tests {
             ),
             2.0
         );
+
+        assert_eq!(
+            exec(
+                "
+            If 1: Then
+                If 0: Then
+                    1+1
+                Else
+                    3+3
+            
+            "
+            ),
+            6.0
+        );
+
+        assert_eq!(
+            exec(
+                "
+            If 1: Then
+                If 0: Then
+                    1+1
+                Else
+                    If 1: Then
+                        3*2
+                    Else
+                        2+2
+            
+            "
+            ),
+            6.0
+        );
+    }
+
+    #[test]
+    fn test_all_real_vars() {
+        for chr in b'A'..b'Z' {
+            let var = String::from_utf8([chr].to_vec()).unwrap();
+            assert_eq!(exec_str(format!("2->{var}\n{var}\n", var=var)), 2.0)
+        }
+    }
+
+    #[test]
+    fn test_vars_as_expressions() {
+        assert_eq!(
+            exec(
+                "
+                2->A
+                A+A
+            "
+            ),
+            4.0
+        );
+
+        assert_eq!(
+            exec(
+                "
+                2->A
+                3->A
+                A
+            "
+            ),
+            3.0
+        );
+
+
     }
 }

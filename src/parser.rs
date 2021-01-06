@@ -2,6 +2,11 @@ use crate::executor::*;
 use crate::lexer::Token;
 
 #[derive(Clone, Debug)]
+pub enum Variable {
+    RealVar(char),
+}
+
+#[derive(Clone, Debug)]
 pub enum Value {
     NumValue(f64),
     StringValue(String),
@@ -48,7 +53,7 @@ impl PartialEq<f64> for Value {
 }
 
 impl Eval for Value {
-    fn eval(&self) -> EvalResult {
+    fn eval(&self, _: &mut Context) -> EvalResult {
         Ok(self.clone())
     }
 
@@ -127,8 +132,21 @@ impl<'a> Parser<'a> {
     }
 
     fn pl_1(&mut self) -> PlRes {
-        // skip straight to pl 6 for now, since we are only trying to get addition working
-        self.pl_2()
+        let lhs = self.pl_2()?;
+        if self.match_if_is(Token::Store) {
+            match self.token().clone() {
+                Token::RealVar(name) => {
+                    self.advance();
+                    Ok(Box::new(StoreNode {
+                        val: lhs,
+                        var: Variable::RealVar(name.clone()),
+                    }))
+                }
+                _ => Err(ParserError::SyntaxError),
+            }
+        } else {
+            Ok(lhs)
+        }
     }
 
     fn pl_2(&mut self) -> PlRes {
@@ -256,6 +274,12 @@ impl<'a> Parser<'a> {
                 self.advance();
                 return Ok(Box::new(Value::NumValue(n)));
             }
+            Token::RealVar(var) => {
+                self.advance();
+                return Ok(Box::new(VarRef {
+                    var: Variable::RealVar(var),
+                }));
+            }
             _ => Err(ParserError::NotYetImplemented),
         }
     }
@@ -330,6 +354,7 @@ impl<'a> Parser<'a> {
 pub enum ParserError {
     MissingToken(Token),
     NotYetImplemented,
+    SyntaxError,
 }
 
 pub fn parse(tokens: &Vec<Token>, program: &mut Program) -> Result<(), ParserError> {

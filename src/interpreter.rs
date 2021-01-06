@@ -34,7 +34,7 @@ fn interpret(repl: bool, input_file: &String) {
                 tokens = tk;
             }
             Err(err) => {
-                println!("Lex Error {:?}", err);
+                println!("Lexing Error: {:?}", err);
                 continue;
             }
         }
@@ -58,7 +58,7 @@ fn interpret(repl: bool, input_file: &String) {
         //                 If we can parse, generate the AST and continue
         match parser::parse(&tokens, &mut program) {
             Err(err) => {
-                println!("Parse Error {:?}", err);
+                println!("Parse Error: {:?}", err);
                 continue;
             }
             _ => (),
@@ -78,7 +78,7 @@ fn interpret(repl: bool, input_file: &String) {
             Err(err) => {
                 match err {
                     executor::ExecError::UnexpectedEof => (),
-                    _ => println!("Exec Error {:?}", err),
+                    _ => println!("Execution Error: {:?}", err),
                 }
                 program.pc = pc_backup;
             }
