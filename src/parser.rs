@@ -107,6 +107,7 @@ impl<'a> Parser<'a> {
         if self.i == self.tokens.len() - 1 {
             panic!("The impossible happened")
         };
+        println!("{:?}", self.token());
         self.i += 1;
     }
 
@@ -131,8 +132,13 @@ impl<'a> Parser<'a> {
         self.i < self.tokens.len() && self.token() != &Token::EndOfInput
     }
 
-    fn pl_1(&mut self) -> PlRes {
-        let lhs = self.pl_2()?;
+    // NOTE ON PRIORITY LEVELS
+    // See `grammar.md` for an explaination of the grammar, this will make a lot more
+    // sense if you consult that document
+
+    fn pl_12(&mut self) -> PlRes {
+        // Storing Variables
+        let lhs = self.pl_11()?;
         if self.match_if_is(Token::Store) {
             match self.token().clone() {
                 Token::RealVar(name) => {
@@ -149,90 +155,86 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn pl_2(&mut self) -> PlRes {
-        let lhs = self.pl_3()?;
+    fn pl_11(&mut self) -> PlRes {
+        self.pl_10()
+    }
+
+    fn pl_10(&mut self) -> PlRes {
+        // Logical or, xor
+        let lhs = self.pl_9()?;
 
         if self.match_if_is(Token::Or) {
-            let rhs = self.pl_2()?;
+            let rhs = self.pl_10()?;
             Ok(Box::new(BinaryOp::or(lhs, rhs)))
         } else if self.match_if_is(Token::Xor) {
-            let rhs = self.pl_2()?;
+            let rhs = self.pl_10()?;
             Ok(Box::new(BinaryOp::xor(lhs, rhs)))
         } else {
             Ok(lhs)
         }
     }
 
-    fn pl_3(&mut self) -> PlRes {
-        let lhs = self.pl_4()?;
+    fn pl_9(&mut self) -> PlRes {
+        // Logical and
+        let lhs = self.pl_8()?;
 
         if self.match_if_is(Token::And) {
-            let rhs = self.pl_3()?;
+            let rhs = self.pl_9()?;
             Ok(Box::new(BinaryOp::and(lhs, rhs)))
         } else {
             Ok(lhs)
         }
     }
 
-    fn pl_4(&mut self) -> PlRes {
-        if self.match_if_is(Token::Not) {
-            let val = self.pl_2()?; // todo: should this be "expression" or something?
-            self.match_if_is(Token::Rparen);
-            self.match_if_is(Token::EndOfLine);
-            Ok(Box::new(Not { val }))
-        } else {
-            Ok(self.pl_5()?)
-        }
-    }
-
-    fn pl_5(&mut self) -> PlRes {
-        let lhs = self.pl_6()?;
+    fn pl_8(&mut self) -> PlRes {
+        // Relational Operators
+        let lhs = self.pl_7()?;
 
         if self.match_if_is(Token::Equal) {
-            let rhs = self.pl_5()?;
+            let rhs = self.pl_8()?;
             Ok(Box::new(BinaryOp::equal(lhs, rhs)))
         } else if self.match_if_is(Token::NotEqual) {
-            let rhs = self.pl_5()?;
+            let rhs = self.pl_8()?;
             Ok(Box::new(BinaryOp::not_equal(lhs, rhs)))
         } else if self.match_if_is(Token::Greater) {
-            let rhs = self.pl_5()?;
+            let rhs = self.pl_8()?;
             Ok(Box::new(BinaryOp::greater(lhs, rhs)))
         } else if self.match_if_is(Token::GreaterEqual) {
-            let rhs = self.pl_5()?;
+            let rhs = self.pl_8()?;
             Ok(Box::new(BinaryOp::greater_equal(lhs, rhs)))
         } else if self.match_if_is(Token::Less) {
-            let rhs = self.pl_5()?;
+            let rhs = self.pl_8()?;
             Ok(Box::new(BinaryOp::less(lhs, rhs)))
         } else if self.match_if_is(Token::LessEqual) {
-            let rhs = self.pl_5()?;
+            let rhs = self.pl_8()?;
             Ok(Box::new(BinaryOp::less_equal(lhs, rhs)))
         } else {
             Ok(lhs)
         }
     }
 
-    fn pl_6(&mut self) -> PlRes {
-        // todo: go down other priority levels
-        let lhs = self.pl_7()?;
+    fn pl_7(&mut self) -> PlRes {
+        let lhs = self.pl_6()?;
         if self.match_if_is(Token::Plus) {
-            let rhs = self.pl_6()?;
+            let rhs = self.pl_7()?;
             Ok(Box::new(BinaryOp::add(lhs, rhs)))
         } else if self.match_if_is(Token::Minus) {
-            let rhs = self.pl_6()?;
+            let rhs = self.pl_7()?;
             Ok(Box::new(BinaryOp::minus(lhs, rhs)))
         } else {
             Ok(lhs)
         }
     }
 
-    fn pl_7(&mut self) -> PlRes {
-        let lhs = self.pl_8()?;
+    fn pl_6(&mut self) -> PlRes {
+        // Multiplication, division, implied multiplication
+        let lhs = self.pl_5()?;
 
         if self.match_if_is(Token::Mult) {
-            let rhs = self.pl_7()?;
+            let rhs = self.pl_6()?;
             Ok(Box::new(BinaryOp::mult(lhs, rhs)))
         } else if self.match_if_is(Token::Divide) {
-            let rhs = self.pl_7()?;
+            let rhs = self.pl_6()?;
             Ok(Box::new(BinaryOp::divide(lhs, rhs)))
 
         // TODO: Adjacent Multiplication Here??
@@ -241,33 +243,72 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn pl_8(&mut self) -> PlRes {
-        // this priority level is for string concatenation, which is tricky since
-        // we are just using the plus node at pl6 to do this.
-        Ok(self.pl_9())?
+    fn pl_5(&mut self) -> PlRes {
+        // nPr, nCr
+        self.pl_4_5()
     }
 
-    fn pl_9(&mut self) -> PlRes {
+    fn pl_4_5(&mut self) -> PlRes {
+        // Negation
         if self.match_if_is(Token::Minus) {
-            let val = self.pl_9()?;
+            let val = self.pl_4()?;
             Ok(Box::new(Negate { val }))
         } else {
-            Ok(self.pl_10()?)
+            Ok(self.pl_4()?)
         }
     }
 
-    fn pl_10(&mut self) -> PlRes {
-        let lhs = self.pl_14()?;
+    fn pl_4(&mut self) -> PlRes {
+        // Power, xroot
+        let lhs = self.pl_3()?;
 
         if self.match_if_is(Token::Power) {
-            let rhs = self.pl_10()?;
+            let rhs = self.pl_3()?;
             Ok(Box::new(BinaryOp::power(lhs, rhs)))
         } else {
             Ok(lhs)
         }
     }
 
-    fn pl_14(&mut self) -> PlRes {
+    fn pl_3(&mut self) -> PlRes {
+        // Functions that follow their argument (eg !)
+        self.pl_2()
+    }
+
+    fn pl_2(&mut self) -> PlRes {
+        // Functions that precede their arguments (eg not(, sin(
+        if self.match_if_is(Token::Not) {
+            let val = self.pl_10()?; // todo: should this be "expression" or something?
+            self.match_if_is(Token::Rparen);
+            Ok(Box::new(Not { val }))
+        } else {
+            self.pl_1()
+        }
+    }
+
+    fn pl_1(&mut self) -> PlRes {
+        // Groupings, ie parens, brackets, curly braces
+        if self.match_if_is(Token::Lparen) {
+            let val = self.pl_10()?;
+            if self.token() != &Token::Rparen && self.token() != &Token::EndOfLine{
+                // We are only allowed to skip the rightparen if we are at the end of a line
+                // If we are not at the end of the line, there must be another expression to
+                // the right of us that we need to do implicit multiplication with
+                let val2 = self.pl_10()?;
+                // Now, 
+
+            } 
+
+            self.match_if_is(Token::Rparen);
+            
+            Ok(val)
+        } else {
+            self.pl_0()
+        }
+    }
+
+    fn pl_0(&mut self) -> PlRes {
+        // Values & their equivalents
         // this is a wart of me fighting the borrow checker
         match self.token().clone() {
             Token::Number(n) => {
@@ -280,19 +321,35 @@ impl<'a> Parser<'a> {
                     var: Variable::RealVar(var),
                 }));
             }
-            _ => Err(ParserError::NotYetImplemented),
+            _ => Err(ParserError::UnexpectedToken(self.token().clone())),
         }
     }
 
     fn expression(&mut self) -> Result<Statement, ParserError> {
-        let stat = Statement::Expression(self.pl_1()?);
-        self.match_if_is(Token::EndOfLine);
-        return Ok(stat);
+        let stat = Statement::Expression(self.pl_12()?);
+        if self.match_if_is(Token::EndOfLine) {
+            // we good
+            Ok(stat)
+        } else {
+            // there must be another expression, implicit multiplication
+            // get the 2nd expression, and then multiply the results
+            if let Statement::Expression(expr) = stat {
+                let stat2 = self.expression()?;
+                if let Statement::Expression(expr2) = stat2 {
+                    Ok(Statement::Expression(Box::new(BinaryOp::mult(expr, expr2))))
+                } else {
+                    Err(ParserError::SyntaxError)
+                }
+            } else {
+                Err(ParserError::SyntaxError)
+            }
+
+        }
     }
 
     fn command(&mut self) -> Result<Statement, ParserError> {
         if self.match_if_is(Token::If) {
-            let condition = self.pl_2()?;
+            let condition = self.pl_10()?;
             self.match_token(Token::EndOfLine)?;
             Ok(Statement::Command(Command::If(If { condition })))
         } else if self.match_if_is(Token::Then) {
@@ -305,11 +362,11 @@ impl<'a> Parser<'a> {
             self.match_token(Token::EndOfLine)?;
             Ok(Statement::Command(Command::End))
         } else if self.match_if_is(Token::Disp) {
-            let val = self.pl_2()?;
+            let val = self.pl_10()?;
             self.match_token(Token::EndOfLine)?;
             Ok(Statement::Command(Command::Disp(val)))
         } else {
-            Err(ParserError::NotYetImplemented)
+            Err(ParserError::NotYetImplemented(self.token().clone()))
         }
     }
 
@@ -353,7 +410,8 @@ impl<'a> Parser<'a> {
 #[derive(Debug)]
 pub enum ParserError {
     MissingToken(Token),
-    NotYetImplemented,
+    NotYetImplemented(Token),
+    UnexpectedToken(Token),
     SyntaxError,
 }
 

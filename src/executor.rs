@@ -330,7 +330,7 @@ impl Eval for StoreNode {
     fn clone_expr(&self) -> Box<dyn Eval> {
         Box::new(StoreNode {
             var: self.var.clone(),
-            val: self.val.clone()
+            val: self.val.clone(),
         })
     }
 }
@@ -390,7 +390,7 @@ impl Eval for BinaryOp {
     }
 
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}({:?} || {:?})", self.token, self.lhs, self.rhs)
+        write!(f, "{:?}({:?}, {:?})", self.token, self.lhs, self.rhs)
     }
 
     fn clone_expr(&self) -> Box<dyn Eval> {
@@ -676,71 +676,71 @@ mod tests {
     }
     #[test]
     fn test_binary_ops_numbers() {
-        assert_eq!(exec("2+2"), 4.0);
-        assert_eq!(exec("2-2"), 0.0);
-        assert_eq!(exec("2*2"), 4.0);
-        assert_eq!(exec("2/4"), 0.5);
-        assert_eq!(exec("-2"), -2.0);
-        assert_eq!(exec("2^4"), 16.0);
+        assert_eq!(exec("2+2\n"), 4.0);
+        assert_eq!(exec("2-2\n"), 0.0);
+        assert_eq!(exec("2*2\n"), 4.0);
+        assert_eq!(exec("2/4\n"), 0.5);
+        assert_eq!(exec("-2\n"), -2.0);
+        assert_eq!(exec("2^4\n"), 16.0);
         // todo: validate the statements in program
     }
 
     #[test]
     fn test_logic_binary() {
-        assert_eq!(exec("1 or 0"), true);
-        assert_eq!(exec("1 or 0"), true);
-        assert_eq!(exec("0 or 0"), false);
+        assert_eq!(exec("1 or 0\n"), true);
+        assert_eq!(exec("1 or 0\n"), true);
+        assert_eq!(exec("0 or 0\n"), false);
 
-        assert_eq!(exec("1 xor 0"), true);
-        assert_eq!(exec("1 xor 1"), false);
-        assert_eq!(exec("0 or 0"), false);
+        assert_eq!(exec("1 xor 0\n"), true);
+        assert_eq!(exec("1 xor 1\n"), false);
+        assert_eq!(exec("0 or 0\n"), false);
 
-        assert_eq!(exec("1 and 1"), true);
-        assert_eq!(exec("1 and 0"), false);
-        assert_eq!(exec("0 and 0"), false);
+        assert_eq!(exec("1 and 1\n"), true);
+        assert_eq!(exec("1 and 0\n"), false);
+        assert_eq!(exec("0 and 0\n"), false);
 
-        assert_eq!(exec("not(1)"), false);
-        assert_eq!(exec("not(0)"), true);
-        assert_eq!(exec("not(1"), false);
-        assert_eq!(exec("not(0"), true);
+        assert_eq!(exec("not(1)\n"), false);
+        assert_eq!(exec("not(0)\n"), true);
+        assert_eq!(exec("not(1\n"), false);
+        assert_eq!(exec("not(0\n"), true);
     }
 
     #[test]
     fn test_logic_numbers() {
         // believe it or not, this was a bug
-        assert_eq!(exec("2 or 0"), true);
-        assert_eq!(exec("12 xor 0"), true);
-        assert_eq!(exec("not(13)"), false);
+        assert_eq!(exec("2 or 0\n"), true);
+        assert_eq!(exec("12 xor 0\n"), true);
+        assert_eq!(exec("not(13)\n"), false);
     }
 
     #[test]
     fn test_logic_expression() {
-        assert_eq!(exec("1+1 or 0"), true);
+        assert_eq!(exec("1+1 or 0\n"), true);
     }
 
     #[test]
     fn test_equality_ops() {
-        assert_eq!(exec("1 = 1"), true);
-        assert_eq!(exec("1 = 0"), false);
+        assert_eq!(exec("1 = 1\n"), true);
+        assert_eq!(exec("1 = 0\n"), false);
 
-        assert_eq!(exec("1 != 1"), false);
-        assert_eq!(exec("1 != 0"), true);
+        assert_eq!(exec("1 != 1\n"), false);
+        assert_eq!(exec("1 != 0\n"), true);
 
-        assert_eq!(exec("1 > 0"), true);
-        assert_eq!(exec("1 > 1"), false);
-        assert_eq!(exec("1 > 2"), false);
+        assert_eq!(exec("1 > 0\n"), true);
+        assert_eq!(exec("1 > 1\n"), false);
+        assert_eq!(exec("1 > 2\n"), false);
 
-        assert_eq!(exec("1 > 0"), true);
-        assert_eq!(exec("1 >= 1"), true);
-        assert_eq!(exec("1 > 2"), false);
+        assert_eq!(exec("1 > 0\n"), true);
+        assert_eq!(exec("1 >= 1\n"), true);
+        assert_eq!(exec("1 > 2\n"), false);
 
-        assert_eq!(exec("1 < 0"), false);
-        assert_eq!(exec("1 < 1"), false);
-        assert_eq!(exec("1 < 2"), true);
+        assert_eq!(exec("1 < 0\n"), false);
+        assert_eq!(exec("1 < 1\n"), false);
+        assert_eq!(exec("1 < 2\n"), true);
 
-        assert_eq!(exec("1 < 0"), false);
-        assert_eq!(exec("1 <= 1"), true);
-        assert_eq!(exec("1 < 2"), true);
+        assert_eq!(exec("1 < 0\n"), false);
+        assert_eq!(exec("1 <= 1\n"), true);
+        assert_eq!(exec("1 < 2\n"), true);
         // todo: validate the statements in program
     }
 
@@ -1049,7 +1049,7 @@ mod tests {
     fn test_all_real_vars() {
         for chr in b'A'..b'Z' {
             let var = String::from_utf8([chr].to_vec()).unwrap();
-            assert_eq!(exec_str(format!("2->{var}\n{var}\n", var=var)), 2.0)
+            assert_eq!(exec_str(format!("2->{var}\n{var}\n", var = var)), 2.0)
         }
     }
 
@@ -1075,6 +1075,24 @@ mod tests {
             ),
             3.0
         );
+    }
+
+    #[test]
+    fn test_large_input() {
+        assert_eq!(
+        exec("(1+2+3+4+5+6+7+8+9+1+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+91+2+3+4+5+6+7+8+9)\n")
+        , 15588.0)
+    }
+
+    #[test]
+    fn test_numbers_operators() {
+        // assert_eq!(exec("1+2-3*4/5"), 0.6);
+        assert_eq!(exec("2(3-4)\n"), -2.0);
+        assert_eq!(exec("2(4.5\n"), 9.0);
+        assert_eq!(exec("3(4(5(6(7(8(9))))))\n"), 181440.0);
+        assert_eq!(exec("3(4(5(6(7(8(9)))))\n"), 181440.0);
+        assert_eq!(exec("3(4(5(6(7(8(9\n"), 181440.0);
+        assert_eq!(exec("2^(4*4+3\nr"), 524288.0);
 
 
     }

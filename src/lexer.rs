@@ -36,6 +36,8 @@ pub enum Token {
     And,
     #[token("not(")]
     Not,
+    #[token("(")]
+    Lparen,
     #[token(")")]
     Rparen,
     #[token("=")]

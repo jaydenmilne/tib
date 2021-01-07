@@ -1,44 +1,47 @@
-# TIB Grammar
-This document contains the parsing grammar for TIB. Non terminals are in quotes.
-Based off [this table](http://tibasicdev.wikidot.com/68k:order-of-operations)
+# TIB Grammar (V2)
+This document contains the parsing grammar for TIB.
+Based off [this table](http://tibasicdev.wikidot.com/operators)
 
 | Non Terminal  | -> | Rule          | Rule          | Rule          | Rule          |
 |---------------|----|---------------|---------------|---------------|---------------|
 | P[rogram]     | -> | S '\n' P      | 'EOF'
-| S[tatement]   | -> | PL1           | EOF
-| PL1           | -> | # -> rvar     | PL2
-| PL2           | -> | # or $        | # xor $       | #
-| PL3           | -> | # and $       | #
-| PL4           | -> | not(PL2)      | not(PL2'EOL'  | #
-| PL5           | -> | # [=,!=] $    | # [>,>=] $    | # [<,<=] $    | #
-| PL6           | -> | # + $         | # - $         | #
-| PL7           | -> | # * $         | # $           | # / $         | #
-| PL9           | -> | -#            | #
-| PL10          | -> | #^$           | #
-| PL13          | -> | (PL2)         | (PL2'EOL'     | {PL13_5'EOL'  | {PL13}
-| PL13_5        | -> | PL2           | PL2,$
-| PL14          | -> | [num]$        | .[num]        | rvar          | [string]
+| S[tatement]   | -> | PL12          | Command       |
+| Command       | -> | Disp PL11     | If PL11       | Then          | Else         
+| PL12          | -> | # -> rvar     | PL11
+| PL11          | -> | # >Frac       |
+| PL10          | -> | # or $        | # xor $       | #
+| PL9           | -> | # and $       | #
+| PL8           | -> | # [=,!=] $    | # [>,>=] $    | # [<,<=] $    | #
+| PL7           | -> | # + $         | # - $         | #
+| PL6           | -> | # * $         | # $           | # / $         | #
+| PL6           | -> | # * $         | # $           | # / $         | #
+| PL5           | -> | # nPr $       | # nCr $       | #
+| PL4.5         | -> | -#            | #
+| PL4           | -> | #^$           | #xroot$       | #
+| PL3           | -> | #!            | #
+| PL2           | -> | func(#        | func(#)       | #
+| PL1           | -> | (PL2)         | (PL2'EOL'     | {PL13_5'EOL'  | {PL13}
+| PL0           | -> | Value
 
 $ = recursion
 \# = next priority level
 \* = not implemented
 
-## TI-84 Priority Levels
-(Highest number = highest priority)
+## TI-84 Priority Levels (revised)
 
 | Level | Operations
-|-------|-----------
-|  14   | Values and their equivalents (variables and constants)
-|  13 	| `()`, brackets `[ ]`, and braces `{ }`
-|  12 	| Functions (`sin()`, `dim()`)
-|  11 	| Operators that go after their operand, eg `{1,2}(1)`
-|  10 	| Exponentiation (`^`)
-|   9 	| Negation (`-`)
-|   8   | String concatenation (`+`)
-|   7 	| Multiplication and division (`*`, `/`)
-|   6 	| Addition and Subtraction (`+`, `-`)
-|   5 	| Equality relations: (`=`, `≠`, `>`, `≥`, `<`, `≤`)
-|   4 	| Logical and arithmetic `not`
-|   3 	| Logical and arithmetic `and`
-|   2 	| Logical and arithmetic `or`, `xor`
-|   1 	| Store (`→`)
+|-------|-------------------------------------------------------------
+|   0   | Values and their equivalents (lists, strings)
+|   1   | `()`, brackets `[ ]` and braces `{ }`
+|   2   | Functions that precede their argument (`sqrt()`, `sin()`)
+|   3   | Functions that follow their argument (such as `!`)
+|   4   | `^` and `xroot`
+|  4.5  | Negation
+|   5   | `nPr` and `nCr`
+|   6   | Multiplication, division, implied multiplication (`*`, `/`)
+|   7   | Addition and subtraction (`+` and `-`)
+|   8   | Relational operators (`=`, `!=`, `<`, `>`, `<=`, `>=`)
+|   9   | Logical `and`
+|   10  | Logical `or` and `xor`
+|   11  | Conversions such as `>Frac`
+|   12  | Storing Variables (`->`)
