@@ -107,7 +107,6 @@ impl<'a> Parser<'a> {
         if self.i == self.tokens.len() - 1 {
             panic!("The impossible happened")
         };
-        println!("{:?}", self.token());
         self.i += 1;
     }
 
@@ -236,10 +235,24 @@ impl<'a> Parser<'a> {
         } else if self.match_if_is(Token::Divide) {
             let rhs = self.pl_6()?;
             Ok(Box::new(BinaryOp::divide(lhs, rhs)))
-
         // TODO: Adjacent Multiplication Here??
         } else {
-            Ok(lhs)
+            // Super ghetto: since this still may be adjacent multiplication,
+            // recurse and try and grab something. If it works, hooray, otherwise,
+            // swallow the error and move on
+            let rhs = self.pl_6();
+            let i_bak = self.i;
+            match rhs {
+                Ok(val) => {
+                    // hooray, we did it
+                    Ok(Box::new(BinaryOp::mult(lhs, val)))
+                },
+                Err(err) => {
+                    // well, we tried
+                    self.i = i_bak;
+                    Ok(lhs)
+                }
+            }
         }
     }
 
@@ -250,7 +263,7 @@ impl<'a> Parser<'a> {
 
     fn pl_4_5(&mut self) -> PlRes {
         // Negation
-        if self.match_if_is(Token::Minus) {
+        if self.match_if_is(Token::Negate) {
             let val = self.pl_4()?;
             Ok(Box::new(Negate { val }))
         } else {
@@ -290,17 +303,7 @@ impl<'a> Parser<'a> {
         // Groupings, ie parens, brackets, curly braces
         if self.match_if_is(Token::Lparen) {
             let val = self.pl_10()?;
-            if self.token() != &Token::Rparen && self.token() != &Token::EndOfLine{
-                // We are only allowed to skip the rightparen if we are at the end of a line
-                // If we are not at the end of the line, there must be another expression to
-                // the right of us that we need to do implicit multiplication with
-                let val2 = self.pl_10()?;
-                // Now, 
-
-            } 
-
             self.match_if_is(Token::Rparen);
-            
             Ok(val)
         } else {
             self.pl_0()
@@ -314,12 +317,18 @@ impl<'a> Parser<'a> {
             Token::Number(n) => {
                 self.advance();
                 return Ok(Box::new(Value::NumValue(n)));
-            }
+            },
             Token::RealVar(var) => {
                 self.advance();
                 return Ok(Box::new(VarRef {
                     var: Variable::RealVar(var),
                 }));
+            },
+            Token::Scientific(exponent) => {
+                self.advance();
+                let base: f64 = 10.0;
+                let exponent: f64 = exponent as f64;
+                return Ok(Box::new(Value::NumValue(base.powf(exponent as f64))))
             }
             _ => Err(ParserError::UnexpectedToken(self.token().clone())),
         }
@@ -327,24 +336,8 @@ impl<'a> Parser<'a> {
 
     fn expression(&mut self) -> Result<Statement, ParserError> {
         let stat = Statement::Expression(self.pl_12()?);
-        if self.match_if_is(Token::EndOfLine) {
-            // we good
-            Ok(stat)
-        } else {
-            // there must be another expression, implicit multiplication
-            // get the 2nd expression, and then multiply the results
-            if let Statement::Expression(expr) = stat {
-                let stat2 = self.expression()?;
-                if let Statement::Expression(expr2) = stat2 {
-                    Ok(Statement::Expression(Box::new(BinaryOp::mult(expr, expr2))))
-                } else {
-                    Err(ParserError::SyntaxError)
-                }
-            } else {
-                Err(ParserError::SyntaxError)
-            }
-
-        }
+        self.match_token(Token::EndOfLine)?;
+        Ok(stat)
     }
 
     fn command(&mut self) -> Result<Statement, ParserError> {

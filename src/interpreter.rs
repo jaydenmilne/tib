@@ -64,7 +64,7 @@ fn interpret(repl: bool, input_file: &String) {
             _ => (),
         };
 
-        println!("{:#?}", program);
+        // println!("{:#?}", program);
 
         if repl_paused {
             continue;

@@ -14,7 +14,6 @@ Based off [this table](http://tibasicdev.wikidot.com/operators)
 | PL8           | -> | # [=,!=] $    | # [>,>=] $    | # [<,<=] $    | #
 | PL7           | -> | # + $         | # - $         | #
 | PL6           | -> | # * $         | # $           | # / $         | #
-| PL6           | -> | # * $         | # $           | # / $         | #
 | PL5           | -> | # nPr $       | # nCr $       | #
 | PL4.5         | -> | -#            | #
 | PL4           | -> | #^$           | #xroot$       | #

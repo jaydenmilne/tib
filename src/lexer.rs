@@ -19,6 +19,14 @@ fn number_var(lex: &mut Lexer<Token>) -> Option<char> {
     }
 }
 
+fn scientific_parser(lex: &mut Lexer<Token>) -> Option<i32> {
+    let slice = lex.slice();
+    match String::from(slice)[1..].parse::<i32>() {
+        Ok(num) => Some(num),
+        Err(err) => None
+    }
+}
+
 #[derive(Debug)]
 pub enum LexError {
     UnknownToken(String),
@@ -56,6 +64,8 @@ pub enum Token {
     Plus,
     #[token("-")]
     Minus,
+    #[token("--")]
+    Negate,
     #[token("*")]
     Mult,
     #[token("/")]
@@ -64,6 +74,9 @@ pub enum Token {
     Power,
     #[token("->")]
     Store,
+
+    #[regex("e[-]?[0-9][0-9]?", scientific_parser)]
+    Scientific(i32),
 
     #[token("Theta", number_var)]
     #[regex(r"[A-Z|θ]", number_var)]
@@ -215,5 +228,12 @@ mod tests {
                 LexError::UnknownToken(_) => return,
             },
         }
+    }
+
+    #[test]
+    fn test_scientific_notation() {
+        assert_eq!(lex_str("1e50"), [Token::Number(1.0), Token::Scientific(50), Token::EndOfInput]);
+        assert_eq!(lex_str("1e-50"), [Token::Number(1.0), Token::Scientific(-50), Token::EndOfInput]);
+        assert_eq!(lex_str("e-50"), [Token::Scientific(-50), Token::EndOfInput]);
     }
 }
