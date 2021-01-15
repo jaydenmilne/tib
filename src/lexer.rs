@@ -23,7 +23,7 @@ fn scientific_parser(lex: &mut Lexer<Token>) -> Option<i32> {
     let slice = lex.slice();
     match String::from(slice)[1..].parse::<i32>() {
         Ok(num) => Some(num),
-        Err(err) => None
+        Err(err) => None,
     }
 }
 
@@ -100,7 +100,8 @@ pub enum Token {
     End,
     #[token("Disp")]
     Disp,
-
+    #[token(",")]
+    Comma,
     #[token("\r\n")]
     #[token("\n")]
     #[token(":")]
@@ -232,8 +233,18 @@ mod tests {
 
     #[test]
     fn test_scientific_notation() {
-        assert_eq!(lex_str("1e50"), [Token::Number(1.0), Token::Scientific(50), Token::EndOfInput]);
-        assert_eq!(lex_str("1e-50"), [Token::Number(1.0), Token::Scientific(-50), Token::EndOfInput]);
+        assert_eq!(
+            lex_str("1e50"),
+            [Token::Number(1.0), Token::Scientific(50), Token::EndOfInput]
+        );
+        assert_eq!(
+            lex_str("1e-50"),
+            [
+                Token::Number(1.0),
+                Token::Scientific(-50),
+                Token::EndOfInput
+            ]
+        );
         assert_eq!(lex_str("e-50"), [Token::Scientific(-50), Token::EndOfInput]);
     }
 }

@@ -1,5 +1,7 @@
 use crate::executor::*;
 use crate::lexer::Token;
+use std::fmt;
+
 
 #[derive(Clone, Debug)]
 pub enum Variable {
@@ -21,6 +23,20 @@ impl Value {
         })
     }
 }
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::NumValue(number) => {
+                write!(f, "{}", number)
+            }
+            Value::StringValue(string) => {
+                write!(f, "{}", string)
+            }
+        }
+    }
+}
+
 
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
@@ -77,7 +93,7 @@ pub enum Command {
     If(If),
     Then,
     Else,
-    For(i64),
+    For(For),
     While(i64),
     Repeat(i64),
     End,
@@ -246,7 +262,7 @@ impl<'a> Parser<'a> {
                 Ok(val) => {
                     // hooray, we did it
                     Ok(Box::new(BinaryOp::mult(lhs, val)))
-                },
+                }
                 Err(err) => {
                     // well, we tried
                     self.i = i_bak;
@@ -317,18 +333,18 @@ impl<'a> Parser<'a> {
             Token::Number(n) => {
                 self.advance();
                 return Ok(Box::new(Value::NumValue(n)));
-            },
+            }
             Token::RealVar(var) => {
                 self.advance();
                 return Ok(Box::new(VarRef {
                     var: Variable::RealVar(var),
                 }));
-            },
+            }
             Token::Scientific(exponent) => {
                 self.advance();
                 let base: f64 = 10.0;
                 let exponent: f64 = exponent as f64;
-                return Ok(Box::new(Value::NumValue(base.powf(exponent as f64))))
+                return Ok(Box::new(Value::NumValue(base.powf(exponent as f64))));
             }
             _ => Err(ParserError::UnexpectedToken(self.token().clone())),
         }
@@ -358,6 +374,30 @@ impl<'a> Parser<'a> {
             let val = self.pl_10()?;
             self.match_token(Token::EndOfLine)?;
             Ok(Statement::Command(Command::Disp(val)))
+        } else if self.match_if_is(Token::For) {
+            // syntax is a variable, start, stop [inc]
+            if let Token::RealVar(name) = self.token().clone() {
+                self.advance();
+                self.match_token(Token::Comma)?;
+                let start = self.pl_10()?;
+                self.match_token(Token::Comma)?;
+                let stop = self.pl_10()?;
+                let inc = if self.match_if_is(Token::Comma) {
+                    self.pl_10()?
+                } else {
+                    Box::new(Value::NumValue(1.0))
+                };
+                self.match_if_is(Token::Rparen);
+
+                Ok(Statement::Command(Command::For(For {
+                    var: Variable::RealVar(name.clone()),
+                    start,
+                    stop,
+                    inc,
+                })))
+            } else {
+                Err(ParserError::SyntaxError)
+            }
         } else {
             Err(ParserError::NotYetImplemented(self.token().clone()))
         }

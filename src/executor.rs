@@ -26,6 +26,34 @@ pub struct Context {
     // rest of the variables/state will go here
 }
 
+impl Context {
+    fn set(&mut self, var: &Variable, val: Value) -> Result<Value, ExecError> {
+        match var {
+            Variable::RealVar(name) => {
+                self.reals.insert(name.clone(), val.clone());
+                Ok(val)
+            }
+        }
+    }
+
+    fn get(&mut self, var: &Variable) -> Result<Value, ExecError> {
+        match var {
+            Variable::RealVar(name) => {
+                // check if is in hashmap
+                match self.reals.get(&name) {
+                    Some(val) => Ok(val.clone()),
+                    // tried to access an uninitialized variable! Punish them for their
+                    // insolence
+                    None => {
+                        let mut rng = rand::thread_rng();
+                        Ok(Value::NumValue(rng.gen_range(-10e20..10e20)))
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Block {
     // Enum for entries on the blockstack. The usize is the index of the
@@ -144,8 +172,9 @@ impl Program {
                         }
 
                         Command::End => {
-                            // we found an else, continue execution at the next statement
+                            // we found an end, continue execution at the next statement
                             self.advance();
+                            // println!("Found end, resuming execution at {}", self.pc);
                             break;
                         }
                         Command::If(_) => {
@@ -183,6 +212,8 @@ impl Program {
 
     fn execute(&mut self) -> Result<(), ExecError> {
         while !self.over() {
+            let mut advance = true;
+            // println!("{:?}", self.blockstack);
             // wart of me battling the borrow checker VVV
             match self.next_statement()?.clone() {
                 Statement::Expression(expr) => {
@@ -192,12 +223,15 @@ impl Program {
                     Command::If(cmd) => self.exec_if(&cmd)?,
                     Command::Then => self.exec_then()?,
                     Command::Else => self.exec_else()?,
-                    Command::End => self.exec_end()?,
+                    Command::End => self.exec_end(&mut advance)?,
                     Command::Disp(val) => self.exec_disp(val)?,
+                    Command::For(cmd) => self.exec_for(&cmd, &mut advance)?,
                     _ => return Err(ExecError::NotYetImplemented),
                 },
             }
-            self.advance();
+            if advance {
+                self.advance();
+            }
         }
 
         Ok(())
@@ -260,17 +294,80 @@ impl Program {
         }
     }
 
-    fn exec_end(&mut self) -> Result<(), ExecError> {
-        let top = self.blockstack.pop().ok_or(ExecError::UnexpectedEnd)?;
+    fn exec_end(&mut self, advance: &mut bool) -> Result<(), ExecError> {
+        let top = self.blockstack.last().ok_or(ExecError::UnexpectedEnd)?;
         match top {
-            Block::IfBlock(_, _) => Ok(()),
+            Block::IfBlock(_, _) => {
+                self.blockstack.pop();
+                Ok(())
+            },
+            Block::ForBlock(pc) => {
+                // println!("Regressing to {} ({:?})", pc, self.statements[pc.clone()]);
+                // we need to go back to the for block
+                *advance = false;
+                self.pc = pc.clone();
+                Ok(())
+            }
             _ => Err(ExecError::NotYetImplemented),
         }
     }
 
     fn exec_disp(&mut self, val: ValRef) -> Result<(), ExecError> {
         let result = val.eval(&mut self.ctx)?;
-        println!("{:?}", result);
+        println!("{}", result);
+        Ok(())
+    }
+
+    fn exec_for(&mut self, cmd: &For, advance: &mut bool) -> Result<(), ExecError> {
+        // Check to see if we have already execute this for once
+        // If it is at the top of the blockstack, we don't need to initialize the variable
+        let mut init = true;
+
+        if let Some(Block::ForBlock(i)) = self.blockstack.last() {
+            if i == &self.pc {
+                init = false
+            }
+        };
+
+        if init {
+            // Evaluate what to set
+            let start = cmd.start.eval(&mut self.ctx)?;
+            // Set it
+            self.ctx.set(&cmd.var, start)?;
+            self.blockstack.push(Block::ForBlock(self.pc));
+        } else {
+            // increment the variable by inc
+            let result = BinaryOp::add(
+                cmd.inc.clone(),
+                Box::new(self.ctx.get(&cmd.var)?)
+            ).eval(&mut self.ctx)?;
+
+            self.ctx.set(&cmd.var, result)?;            
+        }
+
+        // Check to see if we have satisfied the condition
+        let stop = cmd.stop.eval(&mut self.ctx)?;
+
+        if BinaryOp::less(
+            Box::new(self.ctx.get(&cmd.var)?),
+            Box::new(stop.clone())
+        ).eval(&mut self.ctx)? == 1.0 {
+            // execute the loop again, do nothing
+        } else {
+            // Remove the blockstack, make sure its the same one
+            if let Some(Block::ForBlock(pc)) = self.blockstack.pop() {
+                if pc != self.pc {
+                    return Err(ExecError::SyntaxError);
+                }
+                // jump to the End associated with this loop
+                self.scan_and_advance(false, false)?;
+                // we have already moved the pc to where we want it to be
+                *advance = false;
+            } else {
+                return Err(ExecError::SyntaxError);
+            }
+        }
+
         Ok(())
     }
 }
@@ -300,6 +397,13 @@ impl Clone for Box<dyn Eval> {
 pub struct If {
     pub condition: ValRef,
 }
+#[derive(Debug, Clone)]
+pub struct For {
+    pub var: Variable,
+    pub start: ValRef,
+    pub stop: ValRef,
+    pub inc: ValRef,
+}
 
 #[derive(Clone)]
 pub struct Or {
@@ -315,12 +419,7 @@ pub struct StoreNode {
 impl Eval for StoreNode {
     fn eval(&self, ctx: &mut Context) -> EvalResult {
         let val = self.val.eval(ctx)?;
-        match self.var {
-            Variable::RealVar(name) => {
-                ctx.reals.insert(name, val.clone());
-                Ok(val)
-            }
-        }
+        ctx.set(&self.var, val)
     }
 
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -341,20 +440,7 @@ pub struct VarRef {
 
 impl Eval for VarRef {
     fn eval(&self, ctx: &mut Context) -> EvalResult {
-        match self.var {
-            Variable::RealVar(name) => {
-                // check if is in hashmap
-                match ctx.reals.get(&name) {
-                    Some(val) => Ok(val.clone()),
-                    // tried to access an uninitialized variable! Punish them for their
-                    // insolence
-                    None => {
-                        let mut rng = rand::thread_rng();
-                        Ok(Value::NumValue(rng.gen_range(-10e20..10e20)))
-                    }
-                }
-            }
-        }
+        ctx.get(&self.var)
     }
 
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -1107,5 +1193,4 @@ mod tests {
         assert_eq!(exec("e-10\n"), 1.0e-10);
         assert_eq!(exec("4e5\n"), 400000.0);
     }
-
 }

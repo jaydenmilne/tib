@@ -64,7 +64,7 @@ fn interpret(repl: bool, input_file: &String) {
             _ => (),
         };
 
-        // println!("{:#?}", program);
+        println!("{:#?}", program);
 
         if repl_paused {
             continue;
@@ -85,7 +85,7 @@ fn interpret(repl: bool, input_file: &String) {
             _ => {
                 // No errors
                 if repl {
-                    println!("{:?}", program.ctx.ans);
+                    println!("Ans: {}", program.ctx.ans);
                 }
             }
         };
