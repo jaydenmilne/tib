@@ -3,7 +3,6 @@ use crate::parser::*;
 use core::fmt::Debug;
 use rand::Rng;
 use std::collections::HashMap;
-
 use crate::lexer::Token;
 
 #[derive(Debug, PartialEq)]
@@ -18,6 +17,7 @@ pub enum ExecError {
     EmptyBlock,
     UnexpectedThen,
     FailedToFindForNode,
+    UnknownLabel
 }
 
 #[derive(Debug)]
@@ -91,6 +91,7 @@ pub struct Program {
     pub statements: Vec<Statement>,
     pub pc: usize,
     pub blockstack: Vec<Block>,
+    pub label_cache: HashMap<String, usize>
 }
 
 impl Program {
@@ -100,6 +101,7 @@ impl Program {
             statements: Vec::new(),
             pc: 0,
             blockstack: Vec::new(),
+            label_cache: HashMap::new()
         }
     }
 
@@ -243,6 +245,17 @@ impl Program {
                     Command::For(cmd) => self.exec_for(&cmd)?,
                     Command::While(cmd) => self.exec_while(&cmd)?,
                     Command::Repeat(_cmd) => self.exec_repeat()?,
+                    Command::Lbl(_) => (),
+                    Command::Goto(label) => {
+                        match self.label_cache.get(&label) {
+                            Some(loc) => {
+                                self.pc = *loc;
+                            },
+                            None => {
+                                return Err(ExecError::UnknownLabel)
+                            }
+                        }
+                    }
                     _ => return Err(ExecError::NotYetImplemented),
                 },
             }
@@ -1610,4 +1623,23 @@ mod tests {
             1.0
         );
     }
+
+    #[test]
+    fn test_lbl_goto_basic() {
+        assert_eq!(
+            exec(
+                "
+        0 -> A
+        Lbl A
+        A + 1 -> A
+        If A < 5
+            Goto A
+        A
+    "
+            ),
+            5.0
+        );
+    }
+
+
 }

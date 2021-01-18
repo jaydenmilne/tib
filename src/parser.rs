@@ -96,6 +96,8 @@ pub enum Command {
     Repeat(Repeat),
     End,
     Disp(ValRef),
+    Lbl(String),
+    Goto(String)
 }
 
 #[derive(Debug, Clone)]
@@ -355,57 +357,85 @@ impl<'a> Parser<'a> {
     }
 
     fn command(&mut self) -> Result<Statement, ParserError> {
-        if self.match_if_is(Token::If) {
-            let condition = self.pl_10()?;
-            self.match_token(Token::EndOfLine)?;
-            Ok(Statement::Command(Command::If(If { condition })))
-        } else if self.match_if_is(Token::Then) {
-            self.match_token(Token::EndOfLine)?;
-            Ok(Statement::Command(Command::Then))
-        } else if self.match_if_is(Token::Else) {
-            self.match_token(Token::EndOfLine)?;
-            Ok(Statement::Command(Command::Else))
-        } else if self.match_if_is(Token::End) {
-            self.match_token(Token::EndOfLine)?;
-            Ok(Statement::Command(Command::End))
-        } else if self.match_if_is(Token::Disp) {
-            let val = self.pl_10()?;
-            self.match_token(Token::EndOfLine)?;
-            Ok(Statement::Command(Command::Disp(val)))
-        } else if self.match_if_is(Token::For) {
-            // syntax is a variable, start, stop [inc]
-            if let Token::RealVar(name) = self.token().clone() {
+        match self.token().clone() {
+            Token::If => {
                 self.advance();
-                self.match_token(Token::Comma)?;
-                let start = self.pl_10()?;
-                self.match_token(Token::Comma)?;
-                let stop = self.pl_10()?;
-                let inc = if self.match_if_is(Token::Comma) {
-                    self.pl_10()?
+                let condition = self.pl_10()?;
+                self.match_token(Token::EndOfLine)?;
+                Ok(Statement::Command(Command::If(If { condition })))
+            },
+            Token::Then => {
+                self.advance();
+                self.match_token(Token::EndOfLine)?;
+                Ok(Statement::Command(Command::Then))
+            },
+            Token::Else => {
+                self.advance();
+                self.match_token(Token::EndOfLine)?;
+                Ok(Statement::Command(Command::Else))
+            },
+            Token::End => {
+                self.advance();
+                self.match_token(Token::EndOfLine)?;
+                Ok(Statement::Command(Command::End))
+            },
+            Token::Disp => {
+                self.advance();
+                let val = self.pl_10()?;
+                self.match_token(Token::EndOfLine)?;
+                Ok(Statement::Command(Command::Disp(val)))
+            },
+            Token::For => {
+                self.advance();
+                // syntax is a variable, start, stop [inc]
+                if let Token::RealVar(name) = self.token().clone() {
+                    self.advance();
+                    self.match_token(Token::Comma)?;
+                    let start = self.pl_10()?;
+                    self.match_token(Token::Comma)?;
+                    let stop = self.pl_10()?;
+                    let inc = if self.match_if_is(Token::Comma) {
+                        self.pl_10()?
+                    } else {
+                        Box::new(Value::NumValue(1.0))
+                    };
+                    self.match_if_is(Token::Rparen);
+
+                    Ok(Statement::Command(Command::For(For {
+                        var: Variable::RealVar(name.clone()),
+                        start,
+                        stop,
+                        inc,
+                    })))
                 } else {
-                    Box::new(Value::NumValue(1.0))
-                };
-                self.match_if_is(Token::Rparen);
+                    Err(ParserError::SyntaxError)
+                }
+            },
+            Token::While => {
+                self.advance();
+                let condition = self.pl_10()?;
+                Ok(Statement::Command(Command::While(While { condition })))
+            },
+            Token::Repeat => {
+                self.advance();
+                let condition = self.pl_10()?;
 
-                Ok(Statement::Command(Command::For(For {
-                    var: Variable::RealVar(name.clone()),
-                    start,
-                    stop,
-                    inc,
-                })))
-            } else {
-                Err(ParserError::SyntaxError)
+                Ok(Statement::Command(Command::Repeat(Repeat { condition })))
+            },
+            Token::Lbl(name) => {
+                self.advance();
+                if !self.prog.label_cache.contains_key(&name) {
+                    self.prog.label_cache.insert(name.clone(), self.prog.statements.len());
+                }
+                Ok(Statement::Command(Command::Lbl(name.clone())))
+            },
+            Token::Goto(name) => {
+                self.advance();
+                Ok(Statement::Command(Command::Goto(name.clone())))
             }
-        } else if self.match_if_is(Token::While) {
-            let condition = self.pl_10()?;
-
-            Ok(Statement::Command(Command::While(While { condition })))
-        } else if self.match_if_is(Token::Repeat) {
-            let condition = self.pl_10()?;
-
-            Ok(Statement::Command(Command::Repeat(Repeat { condition })))
-        } else {
-            Err(ParserError::NotYetImplemented(self.token().clone()))
+            _ => {
+                Err(ParserError::NotYetImplemented(self.token().clone()))
+            }
         }
     }
 
@@ -419,6 +449,8 @@ impl<'a> Parser<'a> {
             | Token::Repeat
             | Token::End
             | Token::Then
+            | Token::Lbl(_)
+            | Token::Goto(_)
             | Token::Disp => true,
             _ => false,
         }
@@ -451,7 +483,7 @@ pub enum ParserError {
     MissingToken(Token),
     NotYetImplemented(Token),
     UnexpectedToken(Token),
-    SyntaxError,
+    SyntaxError
 }
 
 pub fn parse(tokens: &Vec<Token>, program: &mut Program) -> Result<(), ParserError> {

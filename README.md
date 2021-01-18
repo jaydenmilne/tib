@@ -25,7 +25,7 @@ The tib project's goals are
 
     While an effort will be made to implement as many functions TI-BASIC
     provides, some things that just aren't useful won't be implemented, like
-    yvars and plotting coordinates.
+    yvars and plotting functions.
 
 
 ## Non-Goals
