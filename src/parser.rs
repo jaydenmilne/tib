@@ -2,7 +2,6 @@ use crate::executor::*;
 use crate::lexer::Token;
 use std::fmt;
 
-
 #[derive(Clone, Debug)]
 pub enum Variable {
     RealVar(char),
@@ -36,7 +35,6 @@ impl fmt::Display for Value {
         }
     }
 }
-
 
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
@@ -94,8 +92,8 @@ pub enum Command {
     Then,
     Else,
     For(For),
-    While(i64),
-    Repeat(i64),
+    While(While),
+    Repeat(Repeat),
     End,
     Disp(ValRef),
 }
@@ -263,7 +261,7 @@ impl<'a> Parser<'a> {
                     // hooray, we did it
                     Ok(Box::new(BinaryOp::mult(lhs, val)))
                 }
-                Err(err) => {
+                Err(_err) => {
                     // well, we tried
                     self.i = i_bak;
                     Ok(lhs)
@@ -398,6 +396,14 @@ impl<'a> Parser<'a> {
             } else {
                 Err(ParserError::SyntaxError)
             }
+        } else if self.match_if_is(Token::While) {
+            let condition = self.pl_10()?;
+
+            Ok(Statement::Command(Command::While(While { condition })))
+        } else if self.match_if_is(Token::Repeat) {
+            let condition = self.pl_10()?;
+
+            Ok(Statement::Command(Command::Repeat(Repeat { condition })))
         } else {
             Err(ParserError::NotYetImplemented(self.token().clone()))
         }

@@ -1,16 +1,16 @@
 # tib
 [t]ib [i]s not TI-[B]asic
 
-© Jayden Milne 2018, all rights reserved.
+© Jayden Milne 2020
 
-tib is an interpreter for a subset of TI-BASIC with a few convenience features
-added written in Rust.
+tib is an interpreter for the dialect of TI-BASIC found on the TI-84, written in
+Rust. It aims to be bug-for-bug compatible, anything that works on a calculator 
+is fair game for tib. If you find something that doesn't work, please open an 
+issue and let me know!
 
-**tib does not aim to be a calculator.** It can certainly be used as one if you
-want, but it is focused on being an interpreter for a programming language. For
-this reason some feautures are not supported, such as the graph view, yvars,
-plotting functions and others. If you desire those features there are plenty of
-TI calculator emulator projects available.
+## Features
+1. Read-Eval-Print Loop (REPL)
+2. Written in cross-platform Rust
 
 ## Goals
 The tib project's goals are
@@ -21,18 +21,44 @@ The tib project's goals are
 
    Those who prefer a stricter no-nonsense subset of TI-BASIC can pass the `-s`
    or `--strict` paramater to disallow such shenanigans
-2. **An invalid TI-BASIC program is not necessarily an invalid tib program**
-
-   This means that things that might crash your calculator will run fine under
-   tib. For example, `{"HELLO","TI-84"}` will throw an `ERR:DATA TYPE` error on
-   a calculator, but tib will happily except it.
-
-   Those who so desire can pass the `-e` or `--emulate` paramater for a more
-   authentic calculator experience.
-3. **Implement the parts of TI-BASIC that are useful as a general-purpose programming language**
+2. **Implement the parts of TI-BASIC that are useful as a programming language**
 
     While an effort will be made to implement as many functions TI-BASIC
-    provides, some things that just aren't useful won't be implemented. For
-    instance, complex number support probably won't happen, as it isn't
-    generally very useful in programming. yvars likely fall into the same
-    category
+    provides, some things that just aren't useful won't be implemented, like
+    yvars and plotting coordinates.
+
+
+## Non-Goals
+
+1. **Replicate timing exactly**
+
+   The TI-BASIC interpreter on TI-84s is hilariously slow. tib is not 
+   particularly optimized, but replicating the timing of a calculator perfectly
+   would be a tall order. Sorry, your delay loops will be super quick. Welcome
+   to the 21st century.
+
+2. **Replicate the TI-84's floating point behavior**
+
+    Every number in tib is represented by rust's `f64`, so the exact behavior of
+    that is up to your machine. Replicating the intricacies of how floats are
+    handled in the Zilog Z80 does not sound fun to me.
+
+3. **Replace a TI-84**
+
+   There are some features from the TI-84 that probably will never happen, such
+   as plotting graphs or yvars, since I don't see how those are useful for a 
+   programming language. One day, if you are lucky, you may get to draw things
+   to the graph screen, but that's it.
+
+4. **Fail in exactly the same way**
+
+   The goal is that every valid TI-BASIC program is a valid tib program. Note 
+   this constraint says nothing about the inverse or the converse. An invalid 
+   TI-BASIC program is not necessarily an invalid tib program, and tib may let 
+   you get away with something you can't do on a calculator. (please let me know 
+   if you find differences though, so I can try to mitigate them!)
+   
+   A best-effort attempt will be made to fail in the same way, but once you 
+   start crashing a calculator, you are entering the realm of Undefined 
+   Behavior™ and I make no guarantees what tib will do.
+

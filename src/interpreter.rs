@@ -77,10 +77,18 @@ fn interpret(repl: bool, input_file: &String) {
         match executor::execute(&mut program) {
             Err(err) => {
                 match err {
-                    executor::ExecError::UnexpectedEof => (),
-                    _ => println!("Execution Error: {:?}", err),
+                    executor::ExecError::UnexpectedEof => {
+                        // swallow this
+                        // todo: remove gross code duplication
+                        if repl {
+                            println!("Ans: {}", program.ctx.ans);
+                        }
+                    }
+                    _ => {
+                        println!("Execution Error: {:?}", err);
+                        program.pc = pc_backup;
+                    }
                 }
-                program.pc = pc_backup;
             }
             _ => {
                 // No errors

@@ -17,6 +17,7 @@ pub enum ExecError {
     UnexpectedEnd,
     EmptyBlock,
     UnexpectedThen,
+    FailedToFindForNode,
 }
 
 #[derive(Debug)]
@@ -24,6 +25,15 @@ pub struct Context {
     pub ans: Value,
     pub reals: HashMap<char, Value>,
     // rest of the variables/state will go here
+}
+
+impl Value {
+    pub fn to_bool(&self) -> Result<bool, ExecError> {
+        match self {
+            Value::NumValue(n) => Ok(*n != 0.0),
+            _ => Err(ExecError::NotYetImplemented),
+        }
+    }
 }
 
 impl Context {
@@ -116,6 +126,9 @@ impl Program {
         self.blockstack.push(block);
 
         self.scan_and_advance(expect_else, skip_else)?;
+        // for a normal scan and advance, we want to execute what we found next
+        // in this case, we don't want to
+        self.advance();
 
         // make sure that we are popping off the same one we put on
         let removed = self.blockstack.pop().ok_or(ExecError::SyntaxError)?;
@@ -137,7 +150,7 @@ impl Program {
     fn scan_and_advance(&mut self, expect_else: bool, skip_else: bool) -> Result<(), ExecError> {
         // Used when we have determined we need to skip some code, becuase
         // we are not going to execute a loop body or we are skipping an arm
-        // of an else statement
+        // of an else statement.
         // Scan for an End command (or an Else command too if we are scanning
         // because of an If command). As we go along, we need to respect and
         // keep track of other block commands on the block stack to make sure
@@ -153,8 +166,8 @@ impl Program {
         // 0 -> A
         // Goto A
         // is a valid program (loops forever)
+        self.advance();
         loop {
-            self.advance();
             match self.next_statement()? {
                 Statement::Expression(_) => (),
                 Statement::Command(cmd) => {
@@ -167,14 +180,17 @@ impl Program {
                                 // if we found an else, and we don't care about executing what is after
                                 // it, then we can just pretend it doesn't exist
                                 self.advance();
+                                continue;
                             }
+
+                            // Always point the pc at one before what we found
+                            self.pc -= 1;
                             return Ok(());
                         }
 
                         Command::End => {
-                            // we found an end, continue execution at the next statement
-                            self.advance();
-                            // println!("Found end, resuming execution at {}", self.pc);
+                            // Always point the pc at one before what we found
+                            self.pc -= 1;
                             break;
                         }
                         Command::If(_) => {
@@ -193,8 +209,8 @@ impl Program {
                     }
                 }
             }
+            self.advance();
         }
-
         Ok(())
     }
 
@@ -212,7 +228,6 @@ impl Program {
 
     fn execute(&mut self) -> Result<(), ExecError> {
         while !self.over() {
-            let mut advance = true;
             // println!("{:?}", self.blockstack);
             // wart of me battling the borrow checker VVV
             match self.next_statement()?.clone() {
@@ -223,15 +238,15 @@ impl Program {
                     Command::If(cmd) => self.exec_if(&cmd)?,
                     Command::Then => self.exec_then()?,
                     Command::Else => self.exec_else()?,
-                    Command::End => self.exec_end(&mut advance)?,
+                    Command::End => self.exec_end()?,
                     Command::Disp(val) => self.exec_disp(val)?,
-                    Command::For(cmd) => self.exec_for(&cmd, &mut advance)?,
+                    Command::For(cmd) => self.exec_for(&cmd)?,
+                    Command::While(cmd) => self.exec_while(&cmd)?,
+                    Command::Repeat(_cmd) => self.exec_repeat()?,
                     _ => return Err(ExecError::NotYetImplemented),
                 },
             }
-            if advance {
-                self.advance();
-            }
+            self.advance();
         }
 
         Ok(())
@@ -253,7 +268,8 @@ impl Program {
         if result == true {
             if self.next_then()? {
                 self.blockstack.push(Block::IfBlock(self.pc, true));
-                // consume the next then so we don't execute it (executing a then is a cardinal sin)
+                // point the pc at the then statement so that next iteration of main loop advances
+                // past it (we don't want to execute a then ever)
                 self.advance();
             } else {
                 // do nothing, continue to the next statement as usual
@@ -263,7 +279,16 @@ impl Program {
                 // We need to skip to the End associated(?) with this If node, or go to the Else
                 self.blockstack.push(Block::IfBlock(self.pc, false));
                 self.scan_and_advance(true, false)?;
+                // If the next thing is an else, advance since we don't want to execute the
+                // else since we did not take the true branch.
+                // If we didn't find an else, leave the pc where it is
+                if let Statement::Command(Command::Else) = self.peek_next()? {
+                    // if scan_and_advance found an else, we don't want to execute it since
+                    // executing an else will just skip to the End
+                    self.advance();
+                };
             } else {
+                // singleline if
                 // skip just the next statement
                 self.advance();
             }
@@ -277,8 +302,10 @@ impl Program {
     }
 
     fn exec_else(&mut self) -> Result<(), ExecError> {
+        // An else should only be executed if we took the true branch of an if statement
+        // the signal is to skip to the end.
         // If there is an Else, we need to skip to the End associated with this
-        let top = self.blockstack.pop().ok_or(ExecError::UnexpectedElse)?;
+        let top = self.blockstack.last().ok_or(ExecError::UnexpectedElse)?;
         match top {
             Block::IfBlock(_, took_true) => {
                 if !took_true {
@@ -294,22 +321,96 @@ impl Program {
         }
     }
 
-    fn exec_end(&mut self, advance: &mut bool) -> Result<(), ExecError> {
-        let top = self.blockstack.last().ok_or(ExecError::UnexpectedEnd)?;
+    fn exec_repeat_end(&mut self, pc: usize) -> Result<(), ExecError> {
+        let cmd = &self.statements[pc].clone();
+        if let Statement::Command(Command::Repeat(cmd)) = cmd {
+            let result = cmd.condition.eval(&mut self.ctx)?;
+            if result.to_bool()? {
+                // execute the loop again, set pc back to point at the repeat node
+                self.pc = pc;
+            } else {
+                // We are done with the loop.
+                // Remove the blockstack, make sure its the same one
+                if let Some(Block::RepeatBlock(popped_pc)) = self.blockstack.pop() {
+                    if pc != popped_pc {
+                        return Err(ExecError::SyntaxError);
+                    }
+                // we are already pointing at the end, so just continue as normal...
+                } else {
+                    return Err(ExecError::SyntaxError);
+                }
+            }
+            Ok(())
+        } else {
+            Err(ExecError::FailedToFindForNode)
+        }
+    }
+
+    fn exec_while_end(&mut self, pc: usize) -> Result<(), ExecError> {
+        let cmd = &self.statements[pc].clone();
+        if let Statement::Command(Command::While(cmd)) = cmd {
+            let result = cmd.condition.eval(&mut self.ctx)?;
+            if result.to_bool()? {
+                // execute the loop again, set pc back to point at the While node
+                self.pc = pc;
+            } else {
+                // We are done with the loop.
+                // Remove the blockstack, make sure its the same one
+                if let Some(Block::WhileBlock(popped_pc)) = self.blockstack.pop() {
+                    if pc != popped_pc {
+                        return Err(ExecError::SyntaxError);
+                    }
+                // we are already pointing at the end, so just continue as normal...
+                } else {
+                    return Err(ExecError::SyntaxError);
+                }
+            }
+            Ok(())
+        } else {
+            Err(ExecError::FailedToFindForNode)
+        }
+    }
+
+    fn exec_end(&mut self) -> Result<(), ExecError> {
+        let top = self
+            .blockstack
+            .last()
+            .ok_or(ExecError::UnexpectedEnd)?
+            .clone();
         match top {
             Block::IfBlock(_, _) => {
                 self.blockstack.pop();
                 Ok(())
-            },
+            }
             Block::ForBlock(pc) => {
                 // println!("Regressing to {} ({:?})", pc, self.statements[pc.clone()]);
                 // we need to go back to the for block
-                *advance = false;
-                self.pc = pc.clone();
-                Ok(())
+                self.exec_for_end(pc.clone())
             }
-            _ => Err(ExecError::NotYetImplemented),
+            Block::RepeatBlock(pc) => self.exec_repeat_end(pc.clone()),
+            Block::WhileBlock(pc) => self.exec_while_end(pc.clone()),
+            _ => Err(ExecError::SyntaxError),
         }
+    }
+
+    fn exec_while(&mut self, cmd: &While) -> Result<(), ExecError> {
+        self.blockstack.push(Block::WhileBlock(self.pc));
+        // evaluate the condition
+        let result = cmd.condition.eval(&mut self.ctx)?;
+
+        if result == 0.0 {
+            // condition is not true, skip to end
+            self.scan_and_advance(false, false)?;
+            // we are now pointing one before the End
+        }
+
+        Ok(())
+    }
+
+    fn exec_repeat(&mut self) -> Result<(), ExecError> {
+        // only thing to do is put an entry on the blockstack
+        self.blockstack.push(Block::RepeatBlock(self.pc));
+        Ok(())
     }
 
     fn exec_disp(&mut self, val: ValRef) -> Result<(), ExecError> {
@@ -318,54 +419,64 @@ impl Program {
         Ok(())
     }
 
-    fn exec_for(&mut self, cmd: &For, advance: &mut bool) -> Result<(), ExecError> {
-        // Check to see if we have already execute this for once
-        // If it is at the top of the blockstack, we don't need to initialize the variable
-        let mut init = true;
-
-        if let Some(Block::ForBlock(i)) = self.blockstack.last() {
-            if i == &self.pc {
-                init = false
-            }
-        };
-
-        if init {
-            // Evaluate what to set
-            let start = cmd.start.eval(&mut self.ctx)?;
-            // Set it
-            self.ctx.set(&cmd.var, start)?;
-            self.blockstack.push(Block::ForBlock(self.pc));
-        } else {
-            // increment the variable by inc
-            let result = BinaryOp::add(
-                cmd.inc.clone(),
-                Box::new(self.ctx.get(&cmd.var)?)
-            ).eval(&mut self.ctx)?;
-
-            self.ctx.set(&cmd.var, result)?;            
-        }
-
+    fn for_should_execute_loop(&mut self, cmd: &For) -> Result<bool, ExecError> {
         // Check to see if we have satisfied the condition
         let stop = cmd.stop.eval(&mut self.ctx)?;
 
-        if BinaryOp::less(
-            Box::new(self.ctx.get(&cmd.var)?),
-            Box::new(stop.clone())
-        ).eval(&mut self.ctx)? == 1.0 {
-            // execute the loop again, do nothing
-        } else {
-            // Remove the blockstack, make sure its the same one
-            if let Some(Block::ForBlock(pc)) = self.blockstack.pop() {
-                if pc != self.pc {
+        Ok(
+            BinaryOp::less_equal(Box::new(self.ctx.get(&cmd.var)?), Box::new(stop.clone()))
+                .eval(&mut self.ctx)?
+                == 1.0,
+        )
+    }
+
+    fn exec_for_end(&mut self, pc: usize) -> Result<(), ExecError> {
+        let cmd = &self.statements[pc].clone();
+        if let Statement::Command(Command::For(cmd)) = cmd {
+            // increment the variable by inc
+            let result = BinaryOp::add(cmd.inc.clone(), Box::new(self.ctx.get(&cmd.var)?))
+                .eval(&mut self.ctx)?;
+
+            self.ctx.set(&cmd.var, result)?;
+
+            if self.for_should_execute_loop(cmd)? {
+                // execute the loop again, set pc back to point at the for node
+                self.pc = pc;
+            } else {
+                // We are done with the loop.
+                // Remove the blockstack, make sure its the same one
+                if let Some(Block::ForBlock(popped_pc)) = self.blockstack.pop() {
+                    if pc != popped_pc {
+                        return Err(ExecError::SyntaxError);
+                    }
+                // we are already pointing at the end, so just continue as normal...
+                } else {
                     return Err(ExecError::SyntaxError);
                 }
-                // jump to the End associated with this loop
-                self.scan_and_advance(false, false)?;
-                // we have already moved the pc to where we want it to be
-                *advance = false;
-            } else {
-                return Err(ExecError::SyntaxError);
             }
+            Ok(())
+        } else {
+            Err(ExecError::FailedToFindForNode)
+        }
+    }
+
+    fn exec_for(&mut self, cmd: &For) -> Result<(), ExecError> {
+        // A for block should only be executed when we are entering a loop, ie once
+        // so this only handles initialization
+
+        // Check to see if we have already execute this for once
+        // If it is at the top of the blockstack, we don't need to initialize the variable
+
+        // Evaluate what to set
+        let start = cmd.start.eval(&mut self.ctx)?;
+        // Set it
+        self.ctx.set(&cmd.var, start)?;
+        self.blockstack.push(Block::ForBlock(self.pc));
+
+        // Check to see if we need to skip to the end
+        if !self.for_should_execute_loop(cmd)? {
+            // skip to the end
+            self.scan_and_advance(false, false)?;
         }
 
         Ok(())
@@ -403,6 +514,16 @@ pub struct For {
     pub start: ValRef,
     pub stop: ValRef,
     pub inc: ValRef,
+}
+
+#[derive(Debug, Clone)]
+pub struct While {
+    pub condition: ValRef,
+}
+
+#[derive(Debug, Clone)]
+pub struct Repeat {
+    pub condition: ValRef,
 }
 
 #[derive(Clone)]
@@ -902,7 +1023,7 @@ mod tests {
     }
 
     #[test]
-    fn test_if_then_else() {
+    fn test_if_then_else_true() {
         assert_eq!(
             exec(
                 "
@@ -916,7 +1037,10 @@ mod tests {
             ),
             2.0
         );
+    }
 
+    #[test]
+    fn test_if_then_else_false() {
         assert_eq!(
             exec(
                 "
@@ -930,7 +1054,10 @@ mod tests {
             ),
             6.0
         );
+    }
 
+    #[test]
+    fn test_if_then_else_no_end() {
         assert_eq!(
             exec(
                 "
@@ -1192,5 +1319,295 @@ mod tests {
         assert_eq!(exec("e10\n"), 1.0e10);
         assert_eq!(exec("e-10\n"), 1.0e-10);
         assert_eq!(exec("4e5\n"), 400000.0);
+    }
+
+    #[test]
+    fn test_basic_for_loop() {
+        assert_eq!(
+            exec(
+                "
+            3 -> B
+            For(A, 0, 5)
+            2*B -> B
+            End
+            B
+        "
+            ),
+            192.0
+        );
+    }
+
+    #[test]
+    fn test_basic_for_loop_inc() {
+        assert_eq!(
+            exec(
+                "
+            3 -> B
+            For(A, 0, 5, 2)
+            2*B -> B
+            End
+            B
+        "
+            ),
+            24.0
+        );
+    }
+
+    #[test]
+    fn test_basic_for_loop_inc_vars() {
+        assert_eq!(
+            exec(
+                "
+            3 -> B
+            2 -> P
+            5 -> Q
+            0 -> R
+            For(A, R, Q, P)
+            2*B -> B
+            End
+            B
+        "
+            ),
+            24.0
+        );
+    }
+
+    #[test]
+    fn test_nested_for_loop() {
+        assert_eq!(
+            exec(
+                "
+            --1 -> C
+            For(A, --1, 0)
+            For(B, --1, 0)
+            1 -> C
+            End
+            End
+            C
+        "
+            ),
+            1.0
+        );
+    }
+
+    #[test]
+    fn test_super_nested_for_loop() {
+        // This takes about a minute on a calculator lol
+        assert_eq!(
+            exec(
+                "
+            0 -> Z
+            For(A, 0, 5)
+            For(B, 0, 5)
+            For(C, 0, 5)
+            For(D, 0, 5)
+            For(E, 0, 5)
+            Z+1 -> Z
+            End
+            End
+            End
+            End
+            End
+            Z
+        "
+            ),
+            7776.0
+        );
+    }
+
+    #[test]
+    fn test_naked_for_loop() {
+        assert_eq!(
+            exec(
+                "
+            For(A, 0, 5)
+            1+1
+        "
+            ),
+            2.0
+        );
+    }
+
+    #[test]
+    fn test_nested_naked_for_loop() {
+        assert_eq!(
+            exec(
+                "
+            For(A, 0, 5)
+                For(B, 0, 5)
+            1+1
+        "
+            ),
+            2.0
+        );
+    }
+
+    // todo: naked end and if test
+
+    #[test]
+    fn test_for_if() {
+        assert_eq!(
+            exec(
+                "
+            0 -> Z
+            For(A, 0, 5
+                If A = 5
+                    2 -> Z
+            End
+            Z
+        "
+            ),
+            2.0
+        );
+    }
+
+    #[test]
+    fn test_for_if_then() {
+        assert_eq!(
+            exec(
+                "
+            4 -> Z
+            For(A, 0, 5
+                If A = 5
+                Then
+                    2 -> Z
+                End
+            End
+            Z
+        "
+            ),
+            2.0
+        );
+    }
+
+    #[test]
+    fn test_for_if_then_else() {
+        assert_eq!(
+            exec(
+                "
+            0 -> B
+            For(A, 0, 5)
+                If A < 3
+                Then
+                    B + 2 -> B
+                Else
+                    B * 2 -> B
+                End
+            End
+            B
+        "
+            ),
+            48.0
+        );
+    }
+
+    #[test]
+    fn test_while_basic() {
+        assert_eq!(
+            exec(
+                "
+            0 -> B
+            While B < 5
+                B + 1 -> B
+            End
+            B
+    "
+            ),
+            5.0
+        );
+    }
+
+    #[test]
+    fn test_while_skip_loop() {
+        assert_eq!(
+            exec(
+                "
+            0 -> B
+            While B > 5
+                B + 1 -> B
+            End
+            B
+    "
+            ),
+            0.0
+        );
+    }
+
+    #[test]
+    fn test_while_nested_if() {
+        assert_eq!(
+            exec(
+                "
+            0 -> A
+            0 -> B
+            While B < 5
+                If B < 3
+                Then
+                    B + A -> A
+                Else
+                    B * A -> A
+                End
+                B + 1 -> B
+            End
+            A
+    "
+            ),
+            36.0
+        );
+    }
+
+    #[test]
+    fn test_while_nested_if_skip() {
+        assert_eq!(
+            exec(
+                "
+            0 -> A
+            0 -> B
+            While B > 5
+                If B < 3
+                Then
+                    B + A -> A
+                Else
+                    B * A -> A
+                End
+                B + 1 -> B
+            End
+            A
+    "
+            ),
+            0.0
+        );
+    }
+
+    #[test]
+    fn test_repeat_basic() {
+        assert_eq!(
+            exec(
+                "
+        0 -> B
+        Repeat B < 5
+            B + 1 -> B
+        End
+        B
+    "
+            ),
+            5.0
+        );
+    }
+
+    #[test]
+    fn test_repeat_skip_loop() {
+        assert_eq!(
+            exec(
+                "
+        0 -> B
+        Repeat B > 5
+            B + 1 -> B
+        End
+        B
+    "
+            ),
+            1.0
+        );
     }
 }

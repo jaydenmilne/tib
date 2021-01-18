@@ -23,7 +23,7 @@ fn scientific_parser(lex: &mut Lexer<Token>) -> Option<i32> {
     let slice = lex.slice();
     match String::from(slice)[1..].parse::<i32>() {
         Ok(num) => Some(num),
-        Err(err) => None,
+        Err(_err) => None,
     }
 }
 
