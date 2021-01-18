@@ -90,6 +90,9 @@ pub enum Token {
     #[regex(r"[A-Z|θ]", number_var)]
     RealVar(char),
 
+    #[token("Ans")]
+    Ans,
+
     // This is where I would bifrucate this enum into "statements" and "expressions"
     // things after this are "keywords" that aren't eval'd, instead they are executed
     #[token("If")]
@@ -106,6 +109,11 @@ pub enum Token {
     Repeat,
     #[token("End")]
     End,
+    #[token("IS<(")]
+    IncrementSkip,
+    #[token("DS<(")]
+    DecrementSkip,
+
     #[token("Disp")]
     Disp,
 

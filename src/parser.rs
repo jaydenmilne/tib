@@ -5,6 +5,7 @@ use std::fmt;
 #[derive(Clone, Debug)]
 pub enum Variable {
     RealVar(char),
+    Ans
 }
 
 #[derive(Clone, Debug)]
@@ -88,16 +89,18 @@ impl Eval for Value {
 
 #[derive(Debug, Clone)]
 pub enum Command {
-    If(If),
+    If(ValRef),
     Then,
     Else,
     For(For),
-    While(While),
-    Repeat(Repeat),
+    While(ValRef),
+    Repeat(ValRef),
     End,
     Disp(ValRef),
     Lbl(String),
-    Goto(String)
+    Goto(String),
+    DecrementSkip(Variable, ValRef),
+    IncrementSkip(Variable, ValRef)
 }
 
 #[derive(Debug, Clone)]
@@ -346,6 +349,12 @@ impl<'a> Parser<'a> {
                 let exponent: f64 = exponent as f64;
                 return Ok(Box::new(Value::NumValue(base.powf(exponent as f64))));
             }
+            Token::Ans => {
+                self.advance();
+                return Ok(Box::new(VarRef {
+                    var: Variable::Ans,
+                }));
+            }
             _ => Err(ParserError::UnexpectedToken(self.token().clone())),
         }
     }
@@ -362,7 +371,7 @@ impl<'a> Parser<'a> {
                 self.advance();
                 let condition = self.pl_10()?;
                 self.match_token(Token::EndOfLine)?;
-                Ok(Statement::Command(Command::If(If { condition })))
+                Ok(Statement::Command(Command::If(condition )))
             },
             Token::Then => {
                 self.advance();
@@ -414,13 +423,13 @@ impl<'a> Parser<'a> {
             Token::While => {
                 self.advance();
                 let condition = self.pl_10()?;
-                Ok(Statement::Command(Command::While(While { condition })))
+                Ok(Statement::Command(Command::While( condition )))
             },
             Token::Repeat => {
                 self.advance();
                 let condition = self.pl_10()?;
 
-                Ok(Statement::Command(Command::Repeat(Repeat { condition })))
+                Ok(Statement::Command(Command::Repeat(condition )))
             },
             Token::Lbl(name) => {
                 self.advance();
@@ -432,6 +441,38 @@ impl<'a> Parser<'a> {
             Token::Goto(name) => {
                 self.advance();
                 Ok(Statement::Command(Command::Goto(name.clone())))
+            },
+            Token::IncrementSkip => {
+                self.advance();
+                if let Token::RealVar(name) = self.token().clone() {
+                    self.advance();
+                    self.match_token(Token::Comma)?;
+                    let value = self.pl_10()?;
+                    self.match_if_is(Token::Rparen);
+
+                    Ok(Statement::Command(Command::IncrementSkip(
+                        Variable::RealVar(name.clone()),
+                        value
+                    )))
+                } else {
+                    Err(ParserError::SyntaxError)
+                }
+            },
+            Token::DecrementSkip => {
+                self.advance();
+                if let Token::RealVar(name) = self.token().clone() {
+                    self.advance();
+                    self.match_token(Token::Comma)?;
+                    let value = self.pl_10()?;
+                    self.match_if_is(Token::Rparen);
+
+                    Ok(Statement::Command(Command::DecrementSkip(
+                        Variable::RealVar(name.clone()),
+                        value
+                    )))
+                } else {
+                    Err(ParserError::SyntaxError)
+                }
             }
             _ => {
                 Err(ParserError::NotYetImplemented(self.token().clone()))
@@ -451,6 +492,8 @@ impl<'a> Parser<'a> {
             | Token::Then
             | Token::Lbl(_)
             | Token::Goto(_)
+            | Token::IncrementSkip
+            | Token::DecrementSkip
             | Token::Disp => true,
             _ => false,
         }

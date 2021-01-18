@@ -15,6 +15,7 @@ pub enum ExecError {
     UnexpectedElse,
     UnexpectedEnd,
     EmptyBlock,
+    ImmutableVariable,
     UnexpectedThen,
     FailedToFindForNode,
     UnknownLabel
@@ -42,6 +43,9 @@ impl Context {
             Variable::RealVar(name) => {
                 self.reals.insert(name.clone(), val.clone());
                 Ok(val)
+            },
+            Variable::Ans => {
+                Err(ExecError::ImmutableVariable)
             }
         }
     }
@@ -59,12 +63,15 @@ impl Context {
                         Ok(Value::NumValue(rng.gen_range(-10e20..10e20)))
                     }
                 }
+            },
+            Variable::Ans => {
+                Ok(self.ans.clone())
             }
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Block {
     // Enum for entries on the blockstack. The usize is the index of the
     // node that is being repeated
@@ -237,13 +244,13 @@ impl Program {
                     self.ctx.ans = expr.eval(&mut self.ctx)?;
                 }
                 Statement::Command(statement) => match statement {
-                    Command::If(cmd) => self.exec_if(&cmd)?,
+                    Command::If(expr) => self.exec_if(expr)?,
                     Command::Then => self.exec_then()?,
                     Command::Else => self.exec_else()?,
                     Command::End => self.exec_end()?,
                     Command::Disp(val) => self.exec_disp(val)?,
                     Command::For(cmd) => self.exec_for(&cmd)?,
-                    Command::While(cmd) => self.exec_while(&cmd)?,
+                    Command::While(expr) => self.exec_while(expr)?,
                     Command::Repeat(_cmd) => self.exec_repeat()?,
                     Command::Lbl(_) => (),
                     Command::Goto(label) => {
@@ -256,6 +263,9 @@ impl Program {
                             }
                         }
                     }
+                    Command::DecrementSkip(var, val) => self.exec_ds_rs(&var, &val, true)?,
+                    Command::IncrementSkip(var, val) => self.exec_ds_rs(&var, &val, false)?,
+
                     _ => return Err(ExecError::NotYetImplemented),
                 },
             }
@@ -275,8 +285,36 @@ impl Program {
         }
     }
 
-    fn exec_if(&mut self, cmd: &If) -> Result<(), ExecError> {
-        let result = cmd.condition.eval(&mut self.ctx)?;
+    fn exec_ds_rs(&mut self, var: &Variable, value: &ValRef, decrement: bool) -> Result<(), ExecError> {
+        let delta = if decrement {-1.0} else {1.0};
+        let new_value = BinaryOp::add(
+            Box::new(self.ctx.get(&var)?), 
+            Box::new(Value::NumValue(delta))
+        ).eval(&mut self.ctx)?;
+        self.ctx.set(&var, new_value)?;
+        
+        let mut skip = false;
+        let lhs = Box::new(self.ctx.get(var)?.clone());
+        let rhs = value.clone();
+        if decrement {
+            if BinaryOp::less(lhs, rhs).eval(&mut self.ctx)? == 1.0 {
+                skip = true;
+            }
+        } else {
+            if BinaryOp::greater(lhs, rhs).eval(&mut self.ctx)? == 1.0 {
+                skip = true;
+            }
+        }
+
+        if skip {
+            self.advance();
+        }
+
+        Ok(())
+    }
+
+    fn exec_if(&mut self, condition: ValRef) -> Result<(), ExecError> {
+        let result = condition.eval(&mut self.ctx)?;
 
         if result == true {
             if self.next_then()? {
@@ -336,8 +374,8 @@ impl Program {
 
     fn exec_repeat_end(&mut self, pc: usize) -> Result<(), ExecError> {
         let cmd = &self.statements[pc].clone();
-        if let Statement::Command(Command::Repeat(cmd)) = cmd {
-            let result = cmd.condition.eval(&mut self.ctx)?;
+        if let Statement::Command(Command::Repeat(expr)) = cmd {
+            let result = expr.eval(&mut self.ctx)?;
             if result.to_bool()? {
                 // execute the loop again, set pc back to point at the repeat node
                 self.pc = pc;
@@ -361,8 +399,8 @@ impl Program {
 
     fn exec_while_end(&mut self, pc: usize) -> Result<(), ExecError> {
         let cmd = &self.statements[pc].clone();
-        if let Statement::Command(Command::While(cmd)) = cmd {
-            let result = cmd.condition.eval(&mut self.ctx)?;
+        if let Statement::Command(Command::While(expr)) = cmd {
+            let result = expr.eval(&mut self.ctx)?;
             if result.to_bool()? {
                 // execute the loop again, set pc back to point at the While node
                 self.pc = pc;
@@ -388,8 +426,9 @@ impl Program {
         let top = self
             .blockstack
             .last()
-            .ok_or(ExecError::UnexpectedEnd)?
-            .clone();
+            .ok_or(ExecError::UnexpectedEnd)?;
+        let top = top.clone();
+        
         match top {
             Block::IfBlock(_, _) => {
                 self.blockstack.pop();
@@ -406,10 +445,10 @@ impl Program {
         }
     }
 
-    fn exec_while(&mut self, cmd: &While) -> Result<(), ExecError> {
+    fn exec_while(&mut self, condition: ValRef) -> Result<(), ExecError> {
         self.blockstack.push(Block::WhileBlock(self.pc));
         // evaluate the condition
-        let result = cmd.condition.eval(&mut self.ctx)?;
+        let result = condition.eval(&mut self.ctx)?;
 
         if result == 0.0 {
             // condition is not true, skip to end
@@ -518,25 +557,11 @@ impl Clone for Box<dyn Eval> {
     }
 }
 #[derive(Debug, Clone)]
-pub struct If {
-    pub condition: ValRef,
-}
-#[derive(Debug, Clone)]
 pub struct For {
     pub var: Variable,
     pub start: ValRef,
     pub stop: ValRef,
     pub inc: ValRef,
-}
-
-#[derive(Debug, Clone)]
-pub struct While {
-    pub condition: ValRef,
-}
-
-#[derive(Debug, Clone)]
-pub struct Repeat {
-    pub condition: ValRef,
 }
 
 #[derive(Clone)]
@@ -1640,6 +1665,66 @@ mod tests {
             5.0
         );
     }
+
+    #[test]
+    fn test_decrement_skip_basic() {
+        assert_eq!(
+            exec(
+                "
+        5 -> A
+        DS<(A, 6
+        0 -> A
+        A
+    "
+            ),
+            4.0
+        );
+
+        assert_eq!(
+            exec(
+                "
+        7 -> A
+        DS<(A, 6)
+        0 -> A
+        A
+    "
+            ),
+            0.0
+        );
+
+    }
+
+    #[test]
+    fn test_increment_skip_basic() {
+        assert_eq!(
+            exec(
+                "
+        7 -> A
+        IS<(A, 6
+        0 -> A
+        A
+    "
+            ),
+            8.0
+        );
+
+        assert_eq!(
+            exec(
+                "
+        1 -> B
+        IS<(B, 2)
+        0 -> B
+        B
+    "
+            ),
+            0.0
+        );
+
+    }
+
+    // Testing Todo:
+    // - Ans is going to have a huge testing burden
+    // - Test Ans interactions with IS< and DS<
 
 
 }
