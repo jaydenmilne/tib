@@ -81,7 +81,7 @@ fn interpret(repl: bool, input_file: &String) {
                         // swallow this
                         // todo: remove gross code duplication
                         if repl {
-                            println!("Ans: {}", program.ctx.ans);
+                            println!("{}", program.ctx.ans);
                         }
                     }
                     _ => {
@@ -93,7 +93,7 @@ fn interpret(repl: bool, input_file: &String) {
             _ => {
                 // No errors
                 if repl {
-                    println!("Ans: {}", program.ctx.ans);
+                    println!("{}", program.ctx.ans);
                 }
             }
         };

@@ -920,12 +920,34 @@ impl Eval for ExprList {
     }
 }
 
+fn varidicify(func: fn(f64) -> EvalResult, vals: Vec<Value>) -> EvalResult {
+    // helper function to easily turn a function that takes one f64 to an EvalResult
+    // and applies it to a list
+    // there is probably some super-functional programming nirvana way to do this, but I 
+    // don't know it ¯\_(ツ)_/¯
+    let mut result : Vec<Value> = Vec::new();
+
+    for val in vals.iter() {
+        if let Value::NumValue(n) = val {
+            result.push(func(*n)?);
+        } else {
+            return Err(ExecError::TypeMismatch);
+        }
+    } 
+
+    Ok(Value::ValueList(result))
+}
+
 impl Eval for Not {
     fn eval(&self, ctx: &mut Context) -> EvalResult {
+        fn not(n: f64) -> EvalResult {
+            return Ok(Value::bool(!fb(n)))
+        }
         let val = self.val.eval(ctx)?;
 
         match val {
-            Value::NumValue(n) => return Ok(Value::bool(!fb(n))),
+            Value::NumValue(n) => not(n),
+            Value::ValueList(l) => varidicify(not, l),
             _ => Err(ExecError::TypeMismatch),
         }
     }
@@ -946,10 +968,15 @@ pub struct Negate {
 
 impl Eval for Negate {
     fn eval(&self, ctx: &mut Context) -> EvalResult {
+        fn negate(n: f64) -> EvalResult {
+            Ok(Value::NumValue(-1.0 * n))
+        }
+
         let val = self.val.eval(ctx)?;
 
         match val {
-            Value::NumValue(n) => return Ok(Value::NumValue(-1.0 * n)),
+            Value::NumValue(n) => negate(n),
+            Value::ValueList(l) => varidicify(negate, l),
             _ => Err(ExecError::TypeMismatch),
         }
     }
