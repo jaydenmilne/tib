@@ -1,6 +1,6 @@
 use logos::{Lexer, Logos};
-use std::str::FromStr;
 use regex::Regex;
+use std::str::FromStr;
 
 fn number(lex: &mut Lexer<Token>) -> Option<f64> {
     let slice = lex.slice();
@@ -25,7 +25,6 @@ fn parse_label(lex: &mut Lexer<Token>) -> Option<String> {
     let re = Regex::new(r"[A-Z|0-9|θ]{1,2}").unwrap();
     Some(String::from(re.find(slice)?.as_str()))
 }
-
 
 fn scientific_parser(lex: &mut Lexer<Token>) -> Option<i32> {
     let slice = lex.slice();
@@ -56,6 +55,10 @@ pub enum Token {
     Lparen,
     #[token(")")]
     Rparen,
+    #[token("{")]
+    Lcurly,
+    #[token("}")]
+    Rcurly,
     #[token("=")]
     Equal,
     #[token("!=")]

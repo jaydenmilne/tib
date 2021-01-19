@@ -16,6 +16,7 @@ fn main() {
             println!("tib {} (c) 2020 Jayden Milne", env!("CARGO_PKG_VERSION"));
             println!("Usage: tib [filename, optional]");
             println!("If no filename is provided, you will enter a REPL");
+            println!("Special thanks to TI-BASIC Developer (tibasicdev.wikidot.com)");
             return;
         }
 

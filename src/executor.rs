@@ -1,9 +1,9 @@
+use crate::lexer::Token;
 use crate::parser::Statement;
 use crate::parser::*;
 use core::fmt::Debug;
 use rand::Rng;
 use std::collections::HashMap;
-use crate::lexer::Token;
 
 #[derive(Debug, PartialEq)]
 pub enum ExecError {
@@ -18,7 +18,9 @@ pub enum ExecError {
     ImmutableVariable,
     UnexpectedThen,
     FailedToFindForNode,
-    UnknownLabel
+    UnknownLabel,
+    NonNumericTypeInList,
+    DimensionMismatch,
 }
 
 #[derive(Debug)]
@@ -32,7 +34,7 @@ impl Value {
     pub fn to_bool(&self) -> Result<bool, ExecError> {
         match self {
             Value::NumValue(n) => Ok(*n != 0.0),
-            _ => Err(ExecError::NotYetImplemented),
+            _ => Err(ExecError::TypeMismatch),
         }
     }
 }
@@ -43,10 +45,8 @@ impl Context {
             Variable::RealVar(name) => {
                 self.reals.insert(name.clone(), val.clone());
                 Ok(val)
-            },
-            Variable::Ans => {
-                Err(ExecError::ImmutableVariable)
             }
+            Variable::Ans => Err(ExecError::ImmutableVariable),
         }
     }
 
@@ -63,10 +63,8 @@ impl Context {
                         Ok(Value::NumValue(rng.gen_range(-10e20..10e20)))
                     }
                 }
-            },
-            Variable::Ans => {
-                Ok(self.ans.clone())
             }
+            Variable::Ans => Ok(self.ans.clone()),
         }
     }
 }
@@ -98,7 +96,7 @@ pub struct Program {
     pub statements: Vec<Statement>,
     pub pc: usize,
     pub blockstack: Vec<Block>,
-    pub label_cache: HashMap<String, usize>
+    pub label_cache: HashMap<String, usize>,
 }
 
 impl Program {
@@ -108,7 +106,7 @@ impl Program {
             statements: Vec::new(),
             pc: 0,
             blockstack: Vec::new(),
-            label_cache: HashMap::new()
+            label_cache: HashMap::new(),
         }
     }
 
@@ -253,16 +251,12 @@ impl Program {
                     Command::While(expr) => self.exec_while(expr)?,
                     Command::Repeat(_cmd) => self.exec_repeat()?,
                     Command::Lbl(_) => (),
-                    Command::Goto(label) => {
-                        match self.label_cache.get(&label) {
-                            Some(loc) => {
-                                self.pc = *loc;
-                            },
-                            None => {
-                                return Err(ExecError::UnknownLabel)
-                            }
+                    Command::Goto(label) => match self.label_cache.get(&label) {
+                        Some(loc) => {
+                            self.pc = *loc;
                         }
-                    }
+                        None => return Err(ExecError::UnknownLabel),
+                    },
                     Command::DecrementSkip(var, val) => self.exec_ds_rs(&var, &val, true)?,
                     Command::IncrementSkip(var, val) => self.exec_ds_rs(&var, &val, false)?,
 
@@ -285,23 +279,29 @@ impl Program {
         }
     }
 
-    fn exec_ds_rs(&mut self, var: &Variable, value: &ValRef, decrement: bool) -> Result<(), ExecError> {
-        let delta = if decrement {-1.0} else {1.0};
+    fn exec_ds_rs(
+        &mut self,
+        var: &Variable,
+        value: &ValRef,
+        decrement: bool,
+    ) -> Result<(), ExecError> {
+        let delta = if decrement { -1.0 } else { 1.0 };
         let new_value = BinaryOp::add(
-            Box::new(self.ctx.get(&var)?), 
-            Box::new(Value::NumValue(delta))
-        ).eval(&mut self.ctx)?;
+            Box::new(self.ctx.get(&var)?),
+            Box::new(Value::NumValue(delta)),
+        )
+        .eval(&mut self.ctx)?;
         self.ctx.set(&var, new_value)?;
-        
+
         let mut skip = false;
         let lhs = Box::new(self.ctx.get(var)?.clone());
         let rhs = value.clone();
         if decrement {
-            if BinaryOp::less(lhs, rhs).eval(&mut self.ctx)? == 1.0 {
+            if BinaryOp::less(lhs, rhs).eval(&mut self.ctx)?.to_bool()? {
                 skip = true;
             }
         } else {
-            if BinaryOp::greater(lhs, rhs).eval(&mut self.ctx)? == 1.0 {
+            if BinaryOp::greater(lhs, rhs).eval(&mut self.ctx)?.to_bool()? {
                 skip = true;
             }
         }
@@ -316,7 +316,7 @@ impl Program {
     fn exec_if(&mut self, condition: ValRef) -> Result<(), ExecError> {
         let result = condition.eval(&mut self.ctx)?;
 
-        if result == true {
+        if result.to_bool()? {
             if self.next_then()? {
                 self.blockstack.push(Block::IfBlock(self.pc, true));
                 // point the pc at the then statement so that next iteration of main loop advances
@@ -423,12 +423,9 @@ impl Program {
     }
 
     fn exec_end(&mut self) -> Result<(), ExecError> {
-        let top = self
-            .blockstack
-            .last()
-            .ok_or(ExecError::UnexpectedEnd)?;
+        let top = self.blockstack.last().ok_or(ExecError::UnexpectedEnd)?;
         let top = top.clone();
-        
+
         match top {
             Block::IfBlock(_, _) => {
                 self.blockstack.pop();
@@ -450,7 +447,7 @@ impl Program {
         // evaluate the condition
         let result = condition.eval(&mut self.ctx)?;
 
-        if result == 0.0 {
+        if !result.to_bool()? {
             // condition is not true, skip to end
             self.scan_and_advance(false, false)?;
             // we are now pointing one before the End
@@ -478,7 +475,7 @@ impl Program {
         Ok(
             BinaryOp::less_equal(Box::new(self.ctx.get(&cmd.var)?), Box::new(stop.clone()))
                 .eval(&mut self.ctx)?
-                == 1.0,
+                .to_bool()?,
         )
     }
 
@@ -628,6 +625,12 @@ impl Eval for BinaryOp {
         match vleft {
             Value::NumValue(nl) => match vright {
                 Value::NumValue(nr) => return (self.num_num)(nl, nr),
+                Value::ValueList(list) => return self.num_list(nl, list, false),
+                _ => Err(ExecError::TypeMismatch),
+            },
+            Value::ValueList(list) => match vright {
+                Value::NumValue(nr) => return self.num_list(nr, list, true),
+                Value::ValueList(listr) => return self.list_list(list, listr),
                 _ => Err(ExecError::TypeMismatch),
             },
             _ => Err(ExecError::TypeMismatch),
@@ -649,6 +652,45 @@ impl Eval for BinaryOp {
 }
 
 impl BinaryOp {
+    fn num_list(&self, lhs: f64, list: Vec<Value>, swap: bool) -> EvalResult {
+        // helper method to apply a binary operation to each element of a list
+        let mut result: Vec<Value> = Vec::new();
+        for val in list.iter() {
+            match val {
+                Value::NumValue(rhs) => {
+                    if swap {
+                        result.push((self.num_num)(*rhs, lhs)?)
+                    } else {
+                        result.push((self.num_num)(lhs, *rhs)?)
+                    }
+                }
+                _ => return Err(ExecError::TypeMismatch),
+            }
+        }
+
+        Ok(Value::ValueList(result))
+    }
+
+    fn list_list(&self, lhs_list: Vec<Value>, rhs_list: Vec<Value>) -> EvalResult {
+        if lhs_list.len() != rhs_list.len() {
+            return Err(ExecError::DimensionMismatch);
+        }
+
+        let mut result: Vec<Value> = Vec::new();
+
+        for i in 0..lhs_list.len() {
+            match lhs_list[i] {
+                Value::NumValue(lhs) => match rhs_list[i] {
+                    Value::NumValue(rhs) => result.push((self.num_num)(lhs, rhs)?),
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+
+        Ok(Value::ValueList(result))
+    }
+
     pub fn or(lhs: ValRef, rhs: ValRef) -> BinaryOp {
         fn or(lhs: f64, rhs: f64) -> EvalResult {
             Ok(Value::bool(fb(lhs) || fb(rhs)))
@@ -842,6 +884,40 @@ fn fb(f: f64) -> bool {
 
 pub struct Not {
     pub val: ValRef,
+}
+
+#[derive(Debug)]
+pub struct ExprList {
+    pub exprs: Vec<ValRef>,
+}
+
+impl Eval for ExprList {
+    fn eval(&self, ctx: &mut Context) -> EvalResult {
+        let mut vals: Vec<Value> = Vec::new();
+
+        for expr in self.exprs.iter() {
+            let result = expr.eval(ctx)?;
+            // make sure no one snuck in a non-numeric value in this
+            match result {
+                Value::NumValue(_) => (),
+                _ => return Err(ExecError::NonNumericTypeInList),
+            }
+            vals.push(result);
+        }
+
+        Ok(Value::ValueList(vals))
+    }
+
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", self.exprs)
+    }
+
+    fn clone_expr(&self) -> Box<dyn Eval> {
+        Box::new(ExprList {
+            // I hope this does what I think it does
+            exprs: self.exprs.clone(),
+        })
+    }
 }
 
 impl Eval for Not {
@@ -1691,7 +1767,6 @@ mod tests {
             ),
             0.0
         );
-
     }
 
     #[test]
@@ -1719,12 +1794,9 @@ mod tests {
             ),
             0.0
         );
-
     }
 
     // Testing Todo:
     // - Ans is going to have a huge testing burden
     // - Test Ans interactions with IS< and DS<
-
-
 }

@@ -5,13 +5,14 @@ use std::fmt;
 #[derive(Clone, Debug)]
 pub enum Variable {
     RealVar(char),
-    Ans
+    Ans,
 }
 
 #[derive(Clone, Debug)]
 pub enum Value {
     NumValue(f64),
     StringValue(String),
+    ValueList(Vec<Value>),
 }
 
 impl Value {
@@ -32,6 +33,15 @@ impl fmt::Display for Value {
             }
             Value::StringValue(string) => {
                 write!(f, "{}", string)
+            }
+            Value::ValueList(l) => {
+                let mut out = String::from("{");
+                for v in l.iter() {
+                    out.push_str(format!("{} ", v).as_str());
+                }
+                out.pop(); // remove extra space
+                out.push_str("}");
+                write!(f, "{}", out)
             }
         }
     }
@@ -76,6 +86,7 @@ impl Eval for Value {
         match self {
             Value::NumValue(n) => write!(f, "{:?}", n),
             Value::StringValue(s) => write!(f, "{:?}", s),
+            Value::ValueList(v) => write!(f, "{:?}", v),
         }
     }
 
@@ -83,6 +94,7 @@ impl Eval for Value {
         match self {
             Value::NumValue(n) => Box::new(Value::NumValue(*n)),
             Value::StringValue(s) => Box::new(Value::StringValue(s.clone())),
+            Value::ValueList(v) => Box::new(Value::ValueList(v.clone())),
         }
     }
 }
@@ -100,7 +112,7 @@ pub enum Command {
     Lbl(String),
     Goto(String),
     DecrementSkip(Variable, ValRef),
-    IncrementSkip(Variable, ValRef)
+    IncrementSkip(Variable, ValRef),
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +125,7 @@ struct Parser<'a> {
     tokens: &'a Vec<Token>,
     prog: &'a mut Program,
     i: usize,
+    in_list: bool,
 }
 
 type PlRes = Result<Box<dyn Eval>, ParserError>;
@@ -351,9 +364,39 @@ impl<'a> Parser<'a> {
             }
             Token::Ans => {
                 self.advance();
-                return Ok(Box::new(VarRef {
-                    var: Variable::Ans,
-                }));
+                return Ok(Box::new(VarRef { var: Variable::Ans }));
+            }
+            Token::Lcurly => {
+                // begin literal list
+                // empty literal lists are invalid
+                if self.in_list {
+                    return Err(ParserError::RecursiveList);
+                }
+                self.in_list = true;
+                self.advance();
+                let mut items: Vec<ValRef> = Vec::new();
+                loop {
+                    let val = self.pl_10()?;
+                    items.push(val);
+
+                    if !self.more_tokens()
+                        || (self.token() == &Token::Rcurly
+                            || self.token() == &Token::EndOfLine
+                            || self.token() == &Token::Store)
+                    {
+                        // end of the literal
+                        break;
+                    }
+                    self.match_token(Token::Comma)?;
+                    // can't have trailing comma
+                }
+                if items.len() == 0 {
+                    return Err(ParserError::EmptyList);
+                }
+
+                self.in_list = false;
+                self.match_if_is(Token::Rcurly);
+                return Ok(Box::new(ExprList { exprs: items }));
             }
             _ => Err(ParserError::UnexpectedToken(self.token().clone())),
         }
@@ -371,29 +414,29 @@ impl<'a> Parser<'a> {
                 self.advance();
                 let condition = self.pl_10()?;
                 self.match_token(Token::EndOfLine)?;
-                Ok(Statement::Command(Command::If(condition )))
-            },
+                Ok(Statement::Command(Command::If(condition)))
+            }
             Token::Then => {
                 self.advance();
                 self.match_token(Token::EndOfLine)?;
                 Ok(Statement::Command(Command::Then))
-            },
+            }
             Token::Else => {
                 self.advance();
                 self.match_token(Token::EndOfLine)?;
                 Ok(Statement::Command(Command::Else))
-            },
+            }
             Token::End => {
                 self.advance();
                 self.match_token(Token::EndOfLine)?;
                 Ok(Statement::Command(Command::End))
-            },
+            }
             Token::Disp => {
                 self.advance();
                 let val = self.pl_10()?;
                 self.match_token(Token::EndOfLine)?;
                 Ok(Statement::Command(Command::Disp(val)))
-            },
+            }
             Token::For => {
                 self.advance();
                 // syntax is a variable, start, stop [inc]
@@ -419,29 +462,31 @@ impl<'a> Parser<'a> {
                 } else {
                     Err(ParserError::SyntaxError)
                 }
-            },
+            }
             Token::While => {
                 self.advance();
                 let condition = self.pl_10()?;
-                Ok(Statement::Command(Command::While( condition )))
-            },
+                Ok(Statement::Command(Command::While(condition)))
+            }
             Token::Repeat => {
                 self.advance();
                 let condition = self.pl_10()?;
 
-                Ok(Statement::Command(Command::Repeat(condition )))
-            },
+                Ok(Statement::Command(Command::Repeat(condition)))
+            }
             Token::Lbl(name) => {
                 self.advance();
                 if !self.prog.label_cache.contains_key(&name) {
-                    self.prog.label_cache.insert(name.clone(), self.prog.statements.len());
+                    self.prog
+                        .label_cache
+                        .insert(name.clone(), self.prog.statements.len());
                 }
                 Ok(Statement::Command(Command::Lbl(name.clone())))
-            },
+            }
             Token::Goto(name) => {
                 self.advance();
                 Ok(Statement::Command(Command::Goto(name.clone())))
-            },
+            }
             Token::IncrementSkip => {
                 self.advance();
                 if let Token::RealVar(name) = self.token().clone() {
@@ -452,12 +497,12 @@ impl<'a> Parser<'a> {
 
                     Ok(Statement::Command(Command::IncrementSkip(
                         Variable::RealVar(name.clone()),
-                        value
+                        value,
                     )))
                 } else {
                     Err(ParserError::SyntaxError)
                 }
-            },
+            }
             Token::DecrementSkip => {
                 self.advance();
                 if let Token::RealVar(name) = self.token().clone() {
@@ -468,15 +513,13 @@ impl<'a> Parser<'a> {
 
                     Ok(Statement::Command(Command::DecrementSkip(
                         Variable::RealVar(name.clone()),
-                        value
+                        value,
                     )))
                 } else {
                     Err(ParserError::SyntaxError)
                 }
             }
-            _ => {
-                Err(ParserError::NotYetImplemented(self.token().clone()))
-            }
+            _ => Err(ParserError::NotYetImplemented(self.token().clone())),
         }
     }
 
@@ -526,7 +569,9 @@ pub enum ParserError {
     MissingToken(Token),
     NotYetImplemented(Token),
     UnexpectedToken(Token),
-    SyntaxError
+    RecursiveList,
+    EmptyList,
+    SyntaxError,
 }
 
 pub fn parse(tokens: &Vec<Token>, program: &mut Program) -> Result<(), ParserError> {
@@ -538,6 +583,7 @@ pub fn parse(tokens: &Vec<Token>, program: &mut Program) -> Result<(), ParserErr
         tokens,
         prog: program,
         i: 0,
+        in_list: false,
     };
 
     parser.tib_program()
