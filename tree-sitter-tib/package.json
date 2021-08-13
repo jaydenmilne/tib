@@ -1,0 +1,17 @@
+{
+  "name": "tree-sitter-tib",
+  "version": "0.3.0",
+  "description": "Tree sitter parser for TIB",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "nan": "^2.15.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.0"
+  }
+}
